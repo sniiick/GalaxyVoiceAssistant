@@ -1,5 +1,7 @@
 *.iml
 .gradle
+gradle
+gradlew*
 /local.properties
 /.idea/caches
 /.idea/libraries
@@ -14,3 +16,7 @@
 .cxx
 local.properties
 /app/release/
+/app/build/
+/app/release/
+/app/debug/
+/app/src/main/assets/
