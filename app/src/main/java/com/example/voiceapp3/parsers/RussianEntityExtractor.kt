@@ -2,8 +2,8 @@ package com.example.voiceapp3.parsers
 
 object RussianEntityExtractor {
     // Units
-    private val degreePattern = Regex("град(?:ус(?:ов)?|усе|уса)?", RegexOption.IGNORE_CASE)
-    private val percentPattern = Regex("процент(?:ов|а)?", RegexOption.IGNORE_CASE)
+    private val degreePattern = Regex("град(?:ус(?:ов)?|уса|усы)?", RegexOption.IGNORE_CASE)
+    private val percentPattern = Regex("процент(?:ов|а|ы)?", RegexOption.IGNORE_CASE)
 
     // Actions
     private val increasePatterns = listOf(
@@ -60,10 +60,22 @@ object RussianEntityExtractor {
         Regex("закр(?:ой|ыть|ывать)"),
     )
 
+    // Direction and Position
+    private val right = Regex("прав(?:о|ый|ая|ое|ому|ой)|справ[оа]|пассажир(?:а|у|ское|ская|скому|ы|ского|ам|)", RegexOption.IGNORE_CASE)
+    private val rightAll = Regex("правые|все.*правые|правые.*все|все.*справ[оа]|справ[оа].*все", RegexOption.IGNORE_CASE)
+    private val left = Regex("лев(?:о|ый|ая|ое|ому|ой)|слев[ао]|водител(?:ь|я|ю|ем|ское|ская|скому|ской)|пилот(?:а|у|ом)", RegexOption.IGNORE_CASE)
+    private val leftAll = Regex("левые|все.*левые|левые.*все|все.*слев[оа]|слев[оа].*все", RegexOption.IGNORE_CASE)
+
+    private val front = Regex("передн(?:ий|яя|ее|ему|им|ей)|спереди", RegexOption.IGNORE_CASE)
+    private val frontAll = Regex("передние|все.*передние|передние.*все|все.*спереди|спереди.*все", RegexOption.IGNORE_CASE)
+    private val rear = Regex("задн(?:ий|яя|ее|ему|им|ей)|сзади", RegexOption.IGNORE_CASE)
+    private val rearAll = Regex("задние|все.*задние|задние.*все|все.*сзади|сзади.*все", RegexOption.IGNORE_CASE)
+    private val all = Regex("все|весь|всем|всех|", RegexOption.IGNORE_CASE)
+
     // Special values
-    private val maxPattern = Regex("макс(?:имум|имальн(?:ый|ая|ое|ые)|наибольш(?:ий|ая|ее|ие)|полн(?:ый|ая|ое|ые))", RegexOption.IGNORE_CASE)
-    private val minPattern = Regex("мин(?:имум|имальн(?:ый|ая|ое|ые)|наименьш(?:ий|ая|ее|ие))", RegexOption.IGNORE_CASE)
-    private val midPattern = Regex("средн(?:ий|яя|ее)|половин[ауеы]|наполовину?", RegexOption.IGNORE_CASE)
+    private val maxPattern = Regex("макс(?:имум|имальн(?:ый|ая|ое|ые))|наибольш(?:ий|ая|ее|ие)|полн(?:ый|ая|ое|ые)", RegexOption.IGNORE_CASE)
+    private val minPattern = Regex("мин(?:имум|имальн(?:ый|ая|ое|ые))|наименьш(?:ий|ая|ее|ие)", RegexOption.IGNORE_CASE)
+    private val midPattern = Regex("средн(?:ий|яя|ее)|половин[ауеы]|наполовину", RegexOption.IGNORE_CASE)
 
     fun extractEntities(text: String): Map<String, Any> {
         val entities = mutableMapOf<String, Any>()
@@ -75,6 +87,7 @@ object RussianEntityExtractor {
         entities.putAll(extractUnits(text))
         entities.putAll(extractActions(text))
         entities.putAll(handleSpecialValues(text, entities))
+        entities.putAll(extractDirectionPosition(text, entities))
 
         return entities
     }
@@ -99,6 +112,60 @@ object RussianEntityExtractor {
             unSetPatterns.any { it.containsMatchIn(text) } -> mapOf("action" to "unset")
             else -> emptyMap()
         }
+    }
+
+    private fun extractDirectionPosition(text: String, currentEntities: Map<String, Any>): Map<String, Any> {
+        val result = mutableMapOf<String, Any>()
+        // handle left right direction
+        // Handle combined "all + position" cases first
+        when {
+            frontAll.containsMatchIn(text) -> {
+                result["position"] = "front"
+                result["direction"] = "both"
+                return result.ifEmpty { currentEntities }
+            }
+            rearAll.containsMatchIn(text) -> {
+                result["position"] = "rear"
+                result["direction"] = "both"
+                return result.ifEmpty { currentEntities }
+            }
+            leftAll.containsMatchIn(text) -> {
+                result["position"] = "both"
+                result["direction"] = "left"
+                return result.ifEmpty { currentEntities }
+            }
+            rightAll.containsMatchIn(text) -> {
+                result["position"] = "both"
+                result["direction"] = "right"
+                return result.ifEmpty { currentEntities }
+            }
+        }
+
+        when {
+            front.containsMatchIn(text) -> {
+                result["position"] = "front"
+            }
+            rear.containsMatchIn(text) -> {
+                result["position"] = "rear"
+            }
+        }
+
+        when {
+            right.containsMatchIn(text) -> {
+                result["direction"] = "right"
+            }
+            left.containsMatchIn(text) -> {
+                result["direction"] = "left"
+            }
+        }
+
+        // finally handle all
+        if (all.containsMatchIn(text)) {
+            if (!result.containsKey("position")) result["position"] = "both"
+            if (!result.containsKey("direction")) result["direction"] = "both"
+        }
+
+        return result.ifEmpty { currentEntities }
     }
 
     private fun handleSpecialValues(text: String, currentEntities: Map<String, Any>): Map<String, Any> {

@@ -31,7 +31,7 @@ class ActionModel(context: Context, modelPath: String) {
 
         ortEnv = OrtEnvironment.getEnvironment()
         val modelDir = File(context.filesDir, path).apply {
-            mkdirs() // Create directory if missing
+            mkdirs()
         }
         val modelFile = File(modelDir, "model.onnx")
 
@@ -136,7 +136,6 @@ class ActionModel(context: Context, modelPath: String) {
     }
 
 }
-
 
 data class TokenizerInput(
     val inputIds: LongArray,

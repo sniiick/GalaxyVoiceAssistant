@@ -12,8 +12,8 @@ class ChangeAcTempHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : In
     private val acControlHandler: AcControlHandler = AcControlHandler(vehiclePropertyHelper)
     private val areaId: Int = VehicleAreaSeat.SEAT_ROW_1_LEFT
     private val defaultTempChange: Float = 2f
-    private val minTemp: Float = 17f
-    private val maxTemp: Float = 28f
+    private val minTemp: Float = 15.5f
+    private val maxTemp: Float = 28.5f
     override fun canHandle(intent: String): Boolean = intent in "change_ac_temp"
 
     override fun handle(prediction: PredictionResult): Boolean {
@@ -90,7 +90,7 @@ class ChangeAcTempHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : In
     }
 
     fun setTemp(temp: Float): Boolean {
-        if (!acControlHandler.turnOnAc()) {
+        if (!acControlHandler.turnOnAc(setAuto = false)) {
             return false
         }
 

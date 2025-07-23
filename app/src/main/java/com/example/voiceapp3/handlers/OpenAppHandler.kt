@@ -11,12 +11,15 @@ import com.example.voiceapp3.PredictionResult
 class OpenAppHandler(private val context: Context) : IntentHandler {
     private val TAG: String? = "OpenAppHandler"
     private val musicIntent: Intent = Intent().apply {
-        component = ComponentName(
+        setClassName(
             "ru.yandex.music",
-            "ru.yandex.music.MainActivity"
-        )
+            "ru.yandex.music.main.MainScreenActivity")
     }
-    private val naviIntent: Intent = Intent("ru.yandex.yandexnavi")
+    private val naviIntent: Intent = Intent().apply {
+        setClassName(
+            "ru.yandex.yandexnavi",
+            "ru.yandex.yandexnavi.core.NavigatorActivity")
+    }
 
     private val customAppMap: Map<String, Intent> = mapOf(
         "инженер" to Intent().apply {

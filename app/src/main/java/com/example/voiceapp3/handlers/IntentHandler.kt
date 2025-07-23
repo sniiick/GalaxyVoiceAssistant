@@ -32,6 +32,8 @@ class IntentHandlerRegistry(vehiclePropertyHelper: VehiclePropertyHelper, contex
         ChangeAcTempHandler(vehiclePropertyHelper),
         ChangeFanSpeedHandler(vehiclePropertyHelper),
         OpenAppHandler(context),
+        SeatMassageHandler(vehiclePropertyHelper),
+        WindowControlHandler(vehiclePropertyHelper),
 
     )
 

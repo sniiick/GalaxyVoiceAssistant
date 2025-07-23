@@ -20,18 +20,23 @@ class AcControlHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : Inten
         }
     }
 
-    fun turnOnAc(): Boolean {
+    fun turnOnAc(setAuto: Boolean = true): Boolean {
         Log.i(TAG, "Turning AC ON")
         val acOn = vehiclePropertyHelper.setBoolProperty(
             VehiclePropertyIds.HVAC_AC_ON,
             117,
             true
         )
-        val acAutoOn = vehiclePropertyHelper.setBoolProperty(
-            VehiclePropertyIds.HVAC_AUTO_ON,
-            1,
+
+        val acAutoOn = if (setAuto) {
+            vehiclePropertyHelper.setBoolProperty(
+                VehiclePropertyIds.HVAC_AUTO_ON,
+                1,
+                true
+            )
+        } else {
             true
-        )
+        }
         val acPowerOn = vehiclePropertyHelper.setBoolProperty(
             VehiclePropertyIds.HVAC_POWER_ON,
             5,
