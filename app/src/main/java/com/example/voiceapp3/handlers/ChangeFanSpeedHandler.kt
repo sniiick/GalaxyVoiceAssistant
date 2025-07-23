@@ -90,7 +90,7 @@ class ChangeFanSpeedHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : 
     }
 
     private fun setFanSpeed(speed: Int): Boolean {
-        if (!acControlHandler.turnOnAc()) {
+        if (!acControlHandler.turnOnAc(setAuto = false)) {
             return false
         }
 

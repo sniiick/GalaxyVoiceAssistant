@@ -52,8 +52,8 @@ class VoiceAssistantService : Service() {
         private const val VOICE_MODEL_SOURCE = "model-ru"
         private const val CLASS_MODEL_SOURCE = "model-cmd"
         private const val ACTION_ECARX_KEY = "ecarx.intent.action.ECARX_KEY_RVOICEASSIST_EVENT"
-        private const val RECOGNITION_TIMEOUT = 5000L
-        private const val RECOGNITION_PARTIAL_TIMEOUT = 1500L
+        private const val RECOGNITION_TIMEOUT = 7500L
+        private const val RECOGNITION_PARTIAL_TIMEOUT = 2500L
         private const val SAMPLE_RATE = 16000
         private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
         private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
@@ -486,7 +486,7 @@ class VoiceAssistantService : Service() {
                 mediaPlayer.prepareAsync()
                 mediaPlayer.setOnPreparedListener { mp ->
                     try {
-                        mp.setVolume(0.5f, 0.5f)
+//                        mp.setVolume(0.5f, 0.5f)
                         mp.start()
                         Log.i(TAG, "Resource $resourceId played")
                     } catch (e: IllegalStateException) {
