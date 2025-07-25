@@ -117,10 +117,14 @@ class ActionModel(context: Context, modelPath: String) {
     private fun detectIntentByKeywords(text: String): String? {
         return when {
             Regex("град(?:ус|усе|уса|усы)|темпер|тепл|жар|холод|прохлад").containsMatchIn(text) -> "change_ac_temp"
-            Regex("скорост|вентиля|обдув").containsMatchIn(text) -> "change_fan_speed"
+            Regex("вентилятор|обдув").containsMatchIn(text) -> "change_fan_speed"
+            Regex("вентиляци[яю]").containsMatchIn(text) -> "seat_ventilation"
+            Regex("подогрев").containsMatchIn(text) -> "seat_heat"
             Regex("массаж").containsMatchIn(text) -> "seat_massage"
             Regex("багажник|багаж").containsMatchIn(text) -> "trunk_control"
             Regex("стекл|шторк").containsMatchIn(text) -> "window_control"
+            Regex("бензин|заправ(?:к.*|ля.*|и.*)|бензобак").containsMatchIn(text) -> "fuel_door_open"
+            Regex("кошка").containsMatchIn(text) -> "play_sound"
             else -> null
         }
     }

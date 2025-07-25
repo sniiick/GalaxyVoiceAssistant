@@ -2,6 +2,7 @@ package com.example.voiceapp3.handlers
 
 import android.content.Context
 import com.example.voiceapp3.PredictionResult
+import com.example.voiceapp3.car.CarAudioPlayer
 import com.example.voiceapp3.car.VehiclePropertyHelper
 
 
@@ -25,7 +26,7 @@ data class CommandParams(
 )
 
 
-class IntentHandlerRegistry(vehiclePropertyHelper: VehiclePropertyHelper, context: Context) {
+class IntentHandlerRegistry(vehiclePropertyHelper: VehiclePropertyHelper, carAudioPlayer: CarAudioPlayer, context: Context) {
     private val handlers = mutableListOf(
         AcControlHandler(vehiclePropertyHelper),
         TrunkControlHandler(vehiclePropertyHelper),
@@ -34,7 +35,9 @@ class IntentHandlerRegistry(vehiclePropertyHelper: VehiclePropertyHelper, contex
         OpenAppHandler(context),
         SeatMassageHandler(vehiclePropertyHelper),
         WindowControlHandler(vehiclePropertyHelper),
-
+        SeatClimateHandler(vehiclePropertyHelper),
+        FuelDoorHandler(vehiclePropertyHelper),
+        ExternalSoundHandler(carAudioPlayer)
     )
 
     fun register(handler: IntentHandler) {

@@ -33,6 +33,7 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import com.airbnb.lottie.LottieAnimationView
+import com.example.voiceapp3.car.CarAudioPlayer
 import com.example.voiceapp3.car.VehiclePropertyHelper
 import com.example.voiceapp3.handlers.IntentHandlerRegistry
 import org.json.JSONException
@@ -53,7 +54,6 @@ class VoiceAssistantService : Service() {
         private const val CLASS_MODEL_SOURCE = "model-cmd"
         private const val ACTION_ECARX_KEY = "ecarx.intent.action.ECARX_KEY_RVOICEASSIST_EVENT"
         private const val RECOGNITION_TIMEOUT = 7500L
-        private const val RECOGNITION_PARTIAL_TIMEOUT = 2500L
         private const val SAMPLE_RATE = 16000
         private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
         private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
@@ -68,6 +68,7 @@ class VoiceAssistantService : Service() {
         stopRecognition()
     }
     private lateinit var vehiclePropertyHelper: VehiclePropertyHelper
+    private lateinit var carAudioPlayer: CarAudioPlayer
     private lateinit var audioManager: AudioManager
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var audioFocusRequest: AudioFocusRequest
@@ -146,6 +147,7 @@ class VoiceAssistantService : Service() {
         checkAndRequestPermissions()
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         vehiclePropertyHelper = VehiclePropertyHelper(applicationContext)
+        carAudioPlayer = CarAudioPlayer(applicationContext)
         initMediaPlayer()
         initAudioFocusRequest()
         preloadSounds()
@@ -386,9 +388,10 @@ class VoiceAssistantService : Service() {
         handler.postDelayed(timeoutRunnable, timeout)
     }
 
-    private fun resetTimeout(timeout: Long = RECOGNITION_PARTIAL_TIMEOUT) {
+    private fun resetTimeout() {
         handler.removeCallbacks(timeoutRunnable)
-        startTimeout(timeout)
+        Log.i(TAG, "Reset timeout for 5s")
+        startTimeout(5000)
     }
 
     private fun stopRecognition() {
@@ -410,11 +413,15 @@ class VoiceAssistantService : Service() {
             audioRecord?.release()
             audioRecord = null
 
-            // Get final result
+            // Store the recognition success state before getting final result
+            val wasRecognized = isRecognized
+
+            // Get final result (this might modify isRecognized)
             val finalResult = recognizer?.finalResult
             finalResult?.let { processRecognitionResult(it) }
 
-            if (isRecognized) {
+            // Use the stored value to determine which sound to play
+            if (wasRecognized) {
                 playSound(R.raw.success)
             } else {
                 playSound(R.raw.overlay_stop)
@@ -486,7 +493,7 @@ class VoiceAssistantService : Service() {
                 mediaPlayer.prepareAsync()
                 mediaPlayer.setOnPreparedListener { mp ->
                     try {
-//                        mp.setVolume(0.5f, 0.5f)
+                        mp.setVolume(0.8f, 0.8f)
                         mp.start()
                         Log.i(TAG, "Resource $resourceId played")
                     } catch (e: IllegalStateException) {
@@ -566,15 +573,19 @@ class VoiceAssistantService : Service() {
                     isRecognized = true
                     stopRecognition()
                 } else {
+                    resetListeningStatus()
                     isRecognized = false
                     resetTimeout()
                 }
             } else {
+                resetListeningStatus()
                 isRecognized = false
                 Log.i(TAG, "Result is empty")
             }
         } catch (e: JSONException) {
+            resetListeningStatus()
             isRecognized = false
+            resetTimeout()
             Log.e(TAG, "Error parsing result JSON", e)
         }
     }
@@ -605,6 +616,7 @@ class VoiceAssistantService : Service() {
             }
         } catch (e: JSONException) {
             isRecognized = false
+            resetTimeout()
             Log.e(TAG, "Error parsing partial result JSON", e)
         }
     }
@@ -655,9 +667,13 @@ class VoiceAssistantService : Service() {
         Entities: ${prediction.entities}
         """.trimIndent())
 
-        return IntentHandlerRegistry(vehiclePropertyHelper, applicationContext).handle(prediction)
+        return IntentHandlerRegistry(vehiclePropertyHelper, carAudioPlayer, applicationContext).handle(prediction)
     }
-
+    private fun resetListeningStatus() {
+        handler.postDelayed({
+            updateStatusText("...слушаю...")
+        }, 500) // 0.5s delay
+    }
     private fun cleanup() {
         try {
             unregisterReceiver(keyEventReceiver)
@@ -688,6 +704,7 @@ class VoiceAssistantService : Service() {
 
             // Release media resources
             mediaPlayer.release()
+            carAudioPlayer.release()
 
             // Cleanup vehicle connection
             vehiclePropertyHelper.disconnect()

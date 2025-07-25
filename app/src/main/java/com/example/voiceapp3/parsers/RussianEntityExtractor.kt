@@ -70,7 +70,7 @@ object RussianEntityExtractor {
     private val frontAll = Regex("передние|все.*передние|передние.*все|все.*спереди|спереди.*все", RegexOption.IGNORE_CASE)
     private val rear = Regex("задн(?:ий|яя|ее|ему|им|ей)|сзади", RegexOption.IGNORE_CASE)
     private val rearAll = Regex("задние|все.*задние|задние.*все|все.*сзади|сзади.*все", RegexOption.IGNORE_CASE)
-    private val all = Regex("все|весь|всем|всех|", RegexOption.IGNORE_CASE)
+    private val all = Regex("все|весь|всем|всех", RegexOption.IGNORE_CASE)
 
     // Special values
     private val maxPattern = Regex("макс(?:имум|имальн(?:ый|ая|ое|ые))|наибольш(?:ий|ая|ее|ие)|полн(?:ый|ая|ое|ые)", RegexOption.IGNORE_CASE)
