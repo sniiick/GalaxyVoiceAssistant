@@ -124,7 +124,8 @@ class ActionModel(context: Context, modelPath: String) {
             Regex("багажник|багаж").containsMatchIn(text) -> "trunk_control"
             Regex("стекл|шторк").containsMatchIn(text) -> "window_control"
             Regex("бензин|заправ(?:к.*|ля.*|и.*)|бензобак").containsMatchIn(text) -> "fuel_door_open"
-            Regex("кошка").containsMatchIn(text) -> "play_sound"
+            Regex("кошка|нахуй").containsMatchIn(text) -> "play_sound"
+            Regex("свет").containsMatchIn(text) -> "light_control"
             else -> null
         }
     }

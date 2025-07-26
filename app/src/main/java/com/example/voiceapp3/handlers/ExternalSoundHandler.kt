@@ -14,6 +14,7 @@ class ExternalSoundHandler(private val carAudioPlayer: CarAudioPlayer) : IntentH
 
         val soundName = when (sound) {
             "кошка" -> "cat.wav"
+            "нахуй" -> "nah.mp3"
             else -> return false
         }
 
@@ -26,7 +27,7 @@ class ExternalSoundHandler(private val carAudioPlayer: CarAudioPlayer) : IntentH
         }
     }
     private fun extractSoundName(command: String): String? {
-        val soundKeywords = listOf("кошка")
+        val soundKeywords = listOf("кошка", "нахуй")
         return soundKeywords.firstOrNull { command.contains(it) }
     }
 }

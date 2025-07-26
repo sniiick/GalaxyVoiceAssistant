@@ -1,0 +1,122 @@
+<services>
+    <service name="com.geely.dxapp">
+        <option name="action" value="com.geely.action.BOOT_DX_APP"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.mediacontrol">
+        <option name="action" value="com.geely.action.BOOT_MEDIA_CONTROL_APP"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.example.voiceapp3">
+        <option name="action" value="com.geely.action.BOOT_MEDIA_CONTROL_APP"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.knobservice">
+        <option name="action" value="com.geely.action.BOOT_KONB_START_APP"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.music">
+        <option name="action" value="com.geely.action.BOOT_QQ_MUSIC_APP"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.hvac">
+        <option name="action" value="com.flyme.auto.ACTION_HVAC"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="ecarx.automotive.openapi">
+        <option name="action" value="ecarx.automotive.openapi.service"/>
+        <option name="order" value="second"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.user">
+        <option name="action" value="geely.intent.action.START_USER_SERVICE"/>
+        <option name="order" value="second"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.localmusic.usb">
+        <option name="action" value="com.geely.action.BOOT_USB_MUSIC_APP"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.localmusic.bluetooth">
+        <option name="action" value="com.geely.action.BOOT_BT_MUSIC_APP"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.exhibit">
+        <option name="action" value="com.geely.action.BOOT_EXHIBIT_START_APP"/>
+        <option name="order" value="second"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.rads">
+        <option name="action" value="android.intent.action.GEELY_SYS_MONITOR"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.connectivitysettings">
+        <option name="action" value="com.geely.action.BOOT_AUTOCONNECT_START_APP"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.energy">
+        <option name="action" value="android.intent.action.ENERGY_SERVICE"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.service.find">
+        <option name="action" value="com.flyme.auto.service.find.action.LOCATION_STATE_SERVICE"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.android.dialer">
+        <option name="action" value="com.android.dialer.INCALL_START_SERVICE"/>
+        <option name="order" value="second"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.geely.gc.cloudautoclient">
+        <option name="action" value="com.geely.action.BOOT_CLOUD_AUTO_CLIENT"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.keyserver">
+        <option name="action" value="com.geely.action.BOOT_KET_SERVICE_APP"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.settings">
+        <option name="action" value="com.flyme.auto.action.MYCAR_SERVICE"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.wirelesscharging">
+        <option name="action" value="com.geely.action.BOOT_WIRELESS_CHARGING_APP"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.flyme.auto.update">
+        <option name="action" value="com.flyme.auto.update.QUERY_UPDATE"/>
+        <option name="order" value="third"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="ecarx.diagnostic.service">
+        <option name="action" value="android.intent.action.START_DIAGNOSTIC_SERVICE"/>
+        <option name="order" value="second"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.geely.vstd">
+        <option name="action" value="com.geely.vstd.action.VSTD_SETTING_SERVICE"/>
+        <option name="order" value="second"/>
+        <option name="other" value="other"/>
+    </service>
+    <service name="com.geely.linkhmi">
+        <option name="action" value="android.intent.action.GEELY_LINK_SERVICE"/>
+        <option name="order" value="second"/>
+        <option name="other" value="other"/>
+    </service>
+</services>
