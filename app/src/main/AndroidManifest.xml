@@ -1,12 +1,18 @@
+<!--suppress AndroidUnknownAttribute -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.voiceapp3">
+    package="com.example.voiceapp3"
+    android:sharedUserId="android.uid.system"
+    android:protectionLevel="signature"
+    coreApp="true"
+    >
 
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.INTERNET" />
+
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"/>
 
     <uses-permission android:name="android.car.permission.CAR_CONTROL_APP"/>
     <uses-permission android:name="android.car.permission.CONTROL_CAR_DOORS"/>
@@ -19,13 +25,14 @@
     <uses-permission android:name="android.car.permission.CAR_ENERGY_PORTS" />
 
     <uses-permission android:name="com.flyme.auto.hvac.permission.FAN_SPEED_CONTROL" />
+    <uses-permission android:name="com.flyme.auto.user.permission.USER"/>
 
     <uses-permission android:name="com.meizu.flymeauto.permission.VEHICLE_CONTROL"/>
     <uses-permission android:name="com.meizu.flymeauto.permission.CAR_CONTROL"/>
     <uses-permission android:name="com.meizu.flymeauto.permission.ACCESS_CAR_API"/>
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -34,7 +41,9 @@
 
     <application
         android:allowBackup="false"
+        android:icon="@drawable/ic_mic"
         android:supportsRtl="true"
+        android:extractNativeLibs="true"
         tools:ignore="GoogleAppIndexingWarning">
         <uses-library android:name="android.car" android:required="false"/>
         <service
@@ -45,6 +54,9 @@
             android:foregroundServiceType="microphone"
             android:permission="android.permission.BIND_VOICE_INTERACTION">
             <intent-filter>
+                <action android:name="com.flyme.auto.settings.action.privacy_policy"/>
+                <action android:name="com.flyme.auto.settings.action.user_policy"/>
+                <action android:name="com.flyme.auto.settings.action.user_improve_policy"/>
                 <action android:name="com.example.voiceapp3.VoiceAssistantService" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>

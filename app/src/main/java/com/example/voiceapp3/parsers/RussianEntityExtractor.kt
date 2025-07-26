@@ -50,6 +50,7 @@ object RussianEntityExtractor {
         Regex("сдел(?:ать|ай|аю)"),
         Regex("вкл(?:ючи|ючай|ючить)"),
         Regex("откр(?:ой|ыть|ывать)"),
+        Regex("опус(?:ти|кай|тить)"),
     )
 
     private val unSetPatterns = listOf(
@@ -58,6 +59,7 @@ object RussianEntityExtractor {
         Regex("откл(?:ючи|ючай|ючить)"),
         Regex("отмен(?:а|и|яй|ять|ить)"),
         Regex("закр(?:ой|ыть|ывать)"),
+        Regex("под(?:ними|нимай|нимать|нять)"),
     )
 
     // Direction and Position

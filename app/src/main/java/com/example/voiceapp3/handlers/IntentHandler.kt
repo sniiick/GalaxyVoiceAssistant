@@ -37,7 +37,8 @@ class IntentHandlerRegistry(vehiclePropertyHelper: VehiclePropertyHelper, carAud
         WindowControlHandler(vehiclePropertyHelper),
         SeatClimateHandler(vehiclePropertyHelper),
         FuelDoorHandler(vehiclePropertyHelper),
-        ExternalSoundHandler(carAudioPlayer)
+        ExternalSoundHandler(carAudioPlayer),
+        LightControlHandler(vehiclePropertyHelper)
     )
 
     fun register(handler: IntentHandler) {

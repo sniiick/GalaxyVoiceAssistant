@@ -22,13 +22,27 @@ class OpenAppHandler(private val context: Context) : IntentHandler {
             "ru.yandex.yandexnavi.core.NavigatorActivity")
     }
 
-    private val customAppMap: Map<String, Intent> = mapOf(
-        "инженер" to Intent().apply {
+    private fun getEngineerIntent() : Intent {
+        try {
+            Settings.Global.putString(
+                context.contentResolver,
+                "persist.switch.usbmode",
+                "true"
+            )
+        } catch (e: SecurityException) {
+            Log.i(TAG, "Error setting usbmode to true: ${e.toString()}")
+        }
+
+        return Intent().apply {
             component = ComponentName(
                 "com.geely.engineermode",
                 "com.geely.engineermode.MainActivity"
             )
-        },
+        }
+    }
+
+    private val customAppMap: Map<String, Intent> = mapOf(
+        "инженер" to getEngineerIntent(),
         "музыка" to musicIntent,
         "музыку" to musicIntent,
         "параметры" to Intent(Settings.ACTION_SETTINGS),
