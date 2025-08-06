@@ -3,16 +3,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.example.voiceapp3"
     android:sharedUserId="android.uid.system"
-    android:protectionLevel="signature"
-    coreApp="true"
-    >
-
-    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-    <uses-permission android:name="android.permission.INTERNET" />
+    tools:ignore="Deprecated">
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
 
     <uses-permission android:name="android.car.permission.CAR_CONTROL_APP"/>
     <uses-permission android:name="android.car.permission.CONTROL_CAR_DOORS"/>
@@ -23,40 +20,88 @@
     <uses-permission android:name="android.car.permission.CONTROL_CAR_CLIMATE" />
     <uses-permission android:name="android.car.permission.CAR_VENDOR_EXTENSION" />
     <uses-permission android:name="android.car.permission.CAR_ENERGY_PORTS" />
+    <uses-permission android:name="android.car.permission.CAR_SPEED" />
+    <uses-permission android:name="android.car.permission.CAR_CONTROL_ACCESS" />
+    <uses-permission android:name="android.car.permission.CAR_INSTRUMENT_CLUSTER_CONTROL" />
+    <uses-permission android:name="android.car.permission.CAR_IDENTIFICATION" />
+    <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
+    <uses-permission android:name="android.car.permission.CAR_PRIVILEGED" />
+    <uses-permission android:name="android.car.permission.ACCESS_CAR_VENDOR_EXTENSION" />
 
+    <uses-permission android:name="com.flyme.auto.permission.ACCESS_VHAL" />
     <uses-permission android:name="com.flyme.auto.hvac.permission.FAN_SPEED_CONTROL" />
     <uses-permission android:name="com.flyme.auto.user.permission.USER"/>
+
+    <uses-permission android:name="ecarx.oem.permission.OPENAPI_MEDIACENTER_PERMISSION"/>
+    <uses-permission android:name="android.permission.BIND_VOICE_INTERACTION"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE"
+        tools:ignore="ProtectedPermissions" />
 
     <uses-permission android:name="com.meizu.flymeauto.permission.VEHICLE_CONTROL"/>
     <uses-permission android:name="com.meizu.flymeauto.permission.CAR_CONTROL"/>
     <uses-permission android:name="com.meizu.flymeauto.permission.ACCESS_CAR_API"/>
 
+    <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.RECEIVE_MEDIA_BUTTONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"
+        tools:ignore="SystemPermissionTypo" />
+    <uses-permission android:name="android.permission.INJECT_EVENTS"
+        tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.PARTIAL_WAKE_LOCK" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" android:protectionLevel="signature"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO" android:protectionLevel="signature"/>
+
+
+    <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
 
     <application
         android:allowBackup="false"
         android:icon="@drawable/ic_mic"
         android:supportsRtl="true"
         android:extractNativeLibs="true"
-        tools:ignore="GoogleAppIndexingWarning">
+        tools:ignore="DataExtractionRules,GoogleAppIndexingWarning">
+
         <uses-library android:name="android.car" android:required="false"/>
+
+        <activity
+            android:name=".MainActivity"
+            android:label="Voice App"
+            android:theme="@style/Theme.AppCompat.Light"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+<!--        <service-->
+<!--            android:name="com.baidu.bridge.server.AIDLService"-->
+<!--            android:enabled="true"-->
+<!--            android:exported="true">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="com.example.voiceapp3.AIDLService" />-->
+<!--            </intent-filter>-->
+<!--        </service>-->
+
         <service
             android:name=".VoiceAssistantService"
             android:enabled="true"
-            android:exported="false"
+            android:exported="true"
             android:label="Voice Assistant Service"
-            android:foregroundServiceType="microphone"
             android:permission="android.permission.BIND_VOICE_INTERACTION">
             <intent-filter>
                 <action android:name="com.flyme.auto.settings.action.privacy_policy"/>
                 <action android:name="com.flyme.auto.settings.action.user_policy"/>
                 <action android:name="com.flyme.auto.settings.action.user_improve_policy"/>
+                <action android:name="android.car.intent.action.CAR_SERVICE" />
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
                 <action android:name="com.example.voiceapp3.VoiceAssistantService" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
@@ -65,13 +110,22 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
-
-        <receiver android:name=".BootReceiver"
+        <receiver
+            android:name=".BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
         </receiver>
-    </application>
-</manifest>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"/>
+        </provider>
+</application>
+    </manifest>

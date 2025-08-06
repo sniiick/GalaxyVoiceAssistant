@@ -1,0 +1,4 @@
+<paths>
+    <external-cache-path name="external_artwork" path="artwork/"/>
+    <cache-path name="internal_artwork" path="artwork/"/>
+</paths>

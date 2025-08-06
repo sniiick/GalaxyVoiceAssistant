@@ -1,20 +1,28 @@
 package com.example.voiceapp3.car
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.util.Log
+import com.example.voiceapp3.tools.CarModel
+
 
 class CarAudioPlayer(private val context: Context) {
     private val TAG: String = "CarAudioPlayer"
     private var mediaPlayer: MediaPlayer? = null
+
+
+
+    @SuppressLint("WrongConstant")
     fun playWithCustomUsage(assetName: String) {
         try {
+            val externalUsage = CarModel.getExternalUsage()
+
             mediaPlayer?.release()
             mediaPlayer = MediaPlayer().apply {
-                val usage = getCustomUsageConstant()
                 val attributes = AudioAttributes.Builder()
-                    .setUsage(usage)
+                    .setUsage(externalUsage)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build()
                 setAudioAttributes(attributes)
@@ -35,18 +43,10 @@ class CarAudioPlayer(private val context: Context) {
         }
     }
 
-    private fun getCustomUsageConstant(): Int {
-        return try {
-            val field = AudioAttributes::class.java.getDeclaredField("USAGE_EXT_SOUND")
-            field.getInt(null)
-        } catch (e: Exception) {
-            Log.i(TAG, "Error in getting custom usageName: ${e.toString()}")
-            AudioAttributes.USAGE_MEDIA
-        }
-    }
-
     fun release() {
+        mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
     }
+
 }

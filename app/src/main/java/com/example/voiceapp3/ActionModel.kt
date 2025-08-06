@@ -122,9 +122,11 @@ class ActionModel(context: Context, modelPath: String) {
             Regex("подогрев").containsMatchIn(text) -> "seat_heat"
             Regex("массаж").containsMatchIn(text) -> "seat_massage"
             Regex("багажник|багаж").containsMatchIn(text) -> "trunk_control"
-            Regex("стекл|шторк").containsMatchIn(text) -> "window_control"
+            Regex("стекл|шторк|люк").containsMatchIn(text) -> "window_control"
             Regex("бензин|заправ(?:к.*|ля.*|и.*)|бензобак").containsMatchIn(text) -> "fuel_door_open"
             Regex("кошка|нахуй").containsMatchIn(text) -> "play_sound"
+            Regex("скажи").containsMatchIn(text) -> "play_text"
+            Regex("ближний|ближний свет|фар([ыау])|туман|габарит").containsMatchIn(text) -> "exterior_light_control"
             Regex("свет").containsMatchIn(text) -> "light_control"
             else -> null
         }

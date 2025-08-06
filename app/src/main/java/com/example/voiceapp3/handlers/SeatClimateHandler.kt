@@ -1,6 +1,8 @@
 package com.example.voiceapp3.handlers
 
 import android.util.Log
+import com.example.voiceapp3.CommandParams
+import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
 
@@ -46,25 +48,21 @@ class SeatClimateHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
 
     private fun handleSetClimate(isVentilation: Boolean, params: CommandParams, targetSeats: Set<Int>): Boolean {
         val propertyId = if (isVentilation) VENTILATION_PROPERTY else HEAT_PROPERTY
-
-        return when {
-            // Handle power setting by percent
+        val power = when {
             params.value != null && params.unit == "percent" -> {
-                val power = when (params.value) {
+                 when (params.value) {
                     1 -> 1
                     50 -> 2
                     100 -> 3
                     else -> 2
                 }
-                setClimatePower(propertyId, targetSeats, power)
             }
-            // Handle direct power setting
             params.value != null && params.unit == "number" -> {
-                setClimatePower(propertyId, targetSeats, params.value)
+                params.value
             }
-            // Default case - turn on with medium power
-            else -> setClimatePower(propertyId, targetSeats)
+            else -> 2
         }
+        return setClimatePower(propertyId, targetSeats, power)
     }
 
     private fun handleUnsetClimate(isVentilation: Boolean, targetSeats: Set<Int>): Boolean {
@@ -114,7 +112,7 @@ class SeatClimateHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
         return success
     }
 
-    private fun setClimatePower(propertyId: Int, targetSeats: Set<Int>, power: Int = 2): Boolean {
+    private fun setClimatePower(propertyId: Int, targetSeats: Set<Int>, power: Int): Boolean {
         var success = true
         val clampedPower = when {
             power > MAX_POWER -> MAX_POWER

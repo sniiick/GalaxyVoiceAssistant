@@ -1,10 +1,12 @@
 package com.example.voiceapp3.handlers
 
 import android.util.Log
+import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
 
-class LightControlHandler(private val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
+class LightControlHandler(private val vehiclePropertyHelper: VehiclePropertyHelper) :
+    IntentHandler {
     private val TAG: String? = "LightControlHandler"
 
     // Property ID for reading lights

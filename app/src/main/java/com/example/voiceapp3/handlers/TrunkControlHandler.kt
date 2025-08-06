@@ -1,6 +1,8 @@
 package com.example.voiceapp3.handlers
 
+import android.car.VehiclePropertyIds
 import android.util.Log
+import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
 
@@ -24,6 +26,12 @@ class TrunkControlHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : In
     }
 
     private fun openTrunk(): Boolean {
+        val currentSpeed = vehiclePropertyHelper.getFloatProperty(VehiclePropertyIds.PERF_VEHICLE_SPEED, 0)
+        if (currentSpeed >= 5.0f) {
+            Log.w(TAG, "Trunk open blocked - vehicle is moving (speed: $currentSpeed)")
+            return false
+        }
+
         Log.i(TAG, "Opening trunk")
         val result = vehiclePropertyHelper.setIntProperty(
             TRUNK_PROPERTY_ID,

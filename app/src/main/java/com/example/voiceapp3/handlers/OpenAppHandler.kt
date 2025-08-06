@@ -7,7 +7,11 @@ import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.provider.Settings
 import android.util.Log
+import com.example.voiceapp3.CommandParams
+import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
+import com.example.voiceapp3.tools.CarModel
+import com.example.voiceapp3.tools.ModelEnum
 
 class OpenAppHandler(private val context: Context) : IntentHandler {
     private val TAG: String? = "OpenAppHandler"
@@ -23,6 +27,10 @@ class OpenAppHandler(private val context: Context) : IntentHandler {
     }
 
     private fun getEngineerIntent() : Intent {
+        if (CarModel.getCarModel() == ModelEnum.E5) {
+            return Intent()
+        }
+
         try {
             Settings.Global.putString(
                 context.contentResolver,
@@ -63,6 +71,9 @@ class OpenAppHandler(private val context: Context) : IntentHandler {
             commandText.contains(key)
         }?.let { (_, intent) ->
             return try {
+                if (intent.component == null || intent.action == null) {
+                    return false
+                }
                 intent.apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 }
@@ -126,8 +137,8 @@ class OpenAppHandler(private val context: Context) : IntentHandler {
             for (word in words.filter { it.length >= 5 }) {
                 val matchingApp = apps.firstOrNull { app ->
                     val appLabel = app.loadLabel(pm).toString().lowercase()
-                    // Simple fuzzy match - at least 50% of characters match in order
-                    appLabel.containsSequence(word.lowercase(), minMatchRatio = 0.5)
+                    // Simple fuzzy match - at least 70% of characters match in order
+                    appLabel.containsSequence(word.lowercase(), minMatchRatio = 0.7)
                 }
 
                 if (matchingApp != null) {
