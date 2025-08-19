@@ -81,14 +81,17 @@
             </intent-filter>
         </activity>
 
-<!--        <service-->
-<!--            android:name="com.baidu.bridge.server.AIDLService"-->
-<!--            android:enabled="true"-->
-<!--            android:exported="true">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="com.example.voiceapp3.AIDLService" />-->
-<!--            </intent-filter>-->
-<!--        </service>-->
+<!--        for non rooted devices-->
+        <service
+            android:name="com.baidu.bridge.server.AIDLService"
+            android:enabled="true"
+            android:exported="true"
+            tools:ignore="ExportedService">
+            <intent-filter>
+                <action android:name="com.example.voiceapp3.AIDLService" />
+            </intent-filter>
+        </service>
+<!--        for non rooted devices-->
 
         <service
             android:name=".VoiceAssistantService"

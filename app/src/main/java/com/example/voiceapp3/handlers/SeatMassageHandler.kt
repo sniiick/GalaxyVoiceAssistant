@@ -5,14 +5,16 @@ import com.example.voiceapp3.CommandParams
 import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
+import com.example.voiceapp3.tools.CarModel
+import com.example.voiceapp3.tools.ModelEnum
 
 class SeatMassageHandler(private val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
     private val TAG: String? = "SeatMassageHandler"
 
     // Property IDs
-    private val MASSAGE_SWITCH = 622883040
-    private val MASSAGE_POWER = 624980189
-    private val MASSAGE_TYPE = 624980193
+    private var MASSAGE_SWITCH: Int = -1 // handled below
+    private var MASSAGE_POWER: Int = -1 // handled below
+    private var MASSAGE_TYPE: Int = -1 // handled below
 
     // Area IDs
     private val PILOT_SEAT = 1
@@ -21,14 +23,33 @@ class SeatMassageHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
     // Value ranges
     private val MIN_POWER = 1
     private val MAX_POWER = 3
-    private val MIN_TYPE = 1
-    private val MAX_TYPE = 8
+    private var MIN_TYPE = 1
+    private var MAX_TYPE = -1 // handled below
     private val TYPE_KEYWORDS = setOf("тип", "режим", "вариант")
     private var TYPE_ACTION: Boolean = false
 
     override fun canHandle(intent: String): Boolean = intent == "seat_massage"
 
     override fun handle(prediction: PredictionResult): Boolean {
+        val carModel = CarModel.getCarModel()
+        when (carModel) {
+            ModelEnum.STARSHIP -> {
+                MASSAGE_SWITCH = 622883040
+                MASSAGE_POWER = 624980189
+                MASSAGE_TYPE = 624980193
+                MAX_TYPE = 8
+            }
+            ModelEnum.E5 -> {
+                MASSAGE_SWITCH = 622883021
+                MASSAGE_POWER = 624980170
+                MASSAGE_TYPE = 624980174
+                MAX_TYPE = 6
+            }
+            else -> {
+                return false // unsupported car model
+            }
+        }
+
         val params = extractCommonEntities(prediction)
         val targetSeats = determineTargetSeats(prediction)
 

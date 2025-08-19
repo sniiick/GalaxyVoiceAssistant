@@ -90,7 +90,7 @@ class VoiceAssistantService : Service() {
     private var overlayView: View? = null
     private val commandSeparators = listOf(
         "и", "затем", "а затем", "потом", "а еще", "а потом",
-        "после этого", "после того", "далее", "также"
+        "после этого", "после того", "далее", "дальше", "также", "так же"
     )
 
     private fun checkAndRequestPermissions(): Boolean {

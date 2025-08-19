@@ -13,3 +13,5 @@ local.properties
 /app/release/
 /app/debug/
 /app/src/main/assets/
+nonroot.sh
+reverse.sh

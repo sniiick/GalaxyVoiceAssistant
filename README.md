@@ -1,35 +1,153 @@
-Установка
+# Внимание!
+Голосовой ассистент разрабатывается силами community. Все действия Вы выполняете со своего согласия и на свой страх и риск.
 
+ADB root и ADB remount позволяют Вам выполнить необратимые действия с прошивкой автомобиля, последствия могут быть критичными и превратить Ваш планшет в кирпич.
+
+Помните: чем больше сила - тем больше ответственность!
+
+Несмотря на то, что инструкция и голосовой ассистент никак не задевают штатные подсистемы автомобиля, если вы не уверены в своих действиях - создатель ассистента крайне НЕ(!) рекомендует самостоятельную установку.
+
+Если Все вышеописанное Вам понятно - переходите к инструкции и приятного использования.
+
+
+
+# Предварительные требования
+1. Ноутбук на Windows
+2. Data-кабель usbA -> usbA
+
+
+# Подготовка автомобиля
+1. Если у вас уже открыт ADB - пропустите эту секцию
+2. На Starship 7 вам необходимо выполнить полный сброс устройства
+    1. Для этого необходим вход в МА на планшете автомобиля и в настройках необходимо полностью сбросить устройство
+    2. По окончанию сброса и загрузке менеджера первичной настройки необходимо 5 раз надать на логотип - откроется инженерное меню
+    3. В инженерном меню во второй слева вкладке можно будет включить ADB (первая строчка)
+    4. Далее можно пропустить первичную настройку и согласиться со всеми предложениями системы, после чего Вы попадете на рабочий стол
+3. На L7 ADB открывается аналогичным образом как и на Starship 7, но не требует сброс устройства
+    1. Для открытия ADB необходимо открыть приложение телефона
+    2. Ввести команду #*MMDDHH, где MM - текущий месяц +5, DD - текущий день (по китайскому часовому поясу), HH - текущий час (по китайскому часовому поясу)
+    3. Далее включение ADB происходит аналогично Starship 7
+4. На Е5 ADB открыт или закрыт в зависимости от версии прошивки
+
+
+# Подготовка ПК
+1. Скачиваем platform-tools по Windows по ссылке https://developer.android.com/tools/releases/platform-tools?hl=ru
+2. Распаковываем архив в удобное Вам место
+3. Ищем последний актуальный релиз здесь https://github.com/sniiick/GalaxyVoiceAssistant/releases
+4. Скачиваем app-release.apk (если у Вас есть root на машине) или app-release-nonroot.apk (если у вас нет root на машине)
+5. Если у вас есть root - дополнительно скачиваем нативные библиотеки:
+    1. libjnidispatch.so
+    2. libonnxruntime.so
+    3. libonnxruntime4j_jni.so
+    4. libvosk.so
+6. Все скачанные файлы в пунктах 4 и 5 кладем в ту же папку, в которую мы распаковали platform-tools в пункте 2
+7. Заходим в эту папку через проводник, в верхней строчке проводника, где указывается путь текущей папки вводим cmd, на это действие у нас открывается консоль - в ней мы будем выполнять дальнейшие команды
+
+
+# Подключение к машине
+1. Соединияем ноутбук с машиной
+2. В открытой консоли выполняем команду adb devices
+3. В списке устройств должно отобразиться 1 устройство с его кодовым именем. Если этого не произошло - в машине не активирован ADB.
+4. Выполняем команду adb root и adb remount.
+    1. Если на вторую команду мы получаем remount succeeded - поздравляю, у Вас есть root
+    2. Если вторая выдает ошибку Not running as root. Try "adb root" first. - root у Вас недоступен
+
+
+
+
+# Установка для устройств с ROOT (в основном E5, Boyue L и Starship 7 начиная с версии 1.8.0)
+
+Выполняем команды последовательно
 ```shell
 adb root
 adb remount
+
+# установка
 adb shell mkdir -p /system/priv-app/VoiceAssistant
 adb push app-release.apk /system/priv-app/VoiceAssistant/
-adb reboot
 
-
-
-# только 1 раз после первой установки
-adb shell pm grant com.example.voiceapp3 android.permission.SYSTEM_ALERT_WINDOW
-adb shell pm grant com.example.voiceapp3 android.permission.RECORD_AUDIO
-
-# поместить библиотеки в систему
+# помещаем нативные библиотеки в систему
 adb push libonnxruntime4j_jni.so /system/lib64/
 adb push libonnxruntime.so /system/lib64/
 adb push libjnidispatch.so /system/lib64/
 adb push libvosk.so /system/lib64/
+
+# отключаем штатного китайского ассистента
+adb shell pm disable-user com.baidu.iov.dueros.activate
+adb shell pm disable-user com.baidu.iov.sal
+
+# перезагрузка устройства
+adb reboot
 ```
 
+После перезагрузки голосовой ассистент будет реагировать на штатную кнопку голосового ассистента.
 
-Обновление
+
+# Установка для устройств с ROOT (чистые Starship 7/L7 и может быть другие модели на FlymeAuto)
+
+Выполняем команды последовательно
+```shell
+# установка
+adb push app-release-nonroot.apk /data/local/tmp
+adb shell pm install -d -r -g --user current /data/local/tmp/app-release-nonroot.apk
+
+# отключаем штатного китайского ассистента
+adb shell pm disable-user com.baidu.iov.dueros.activate
+adb shell pm disable-user com.baidu.iov.sal
+```
+
+В пределах минуты голосовой ассистент будет запущен системной и начнет реагировать на штатную кнопку голосового ассистента.
+
+
+# Обновление ассистента для устройств с root
+Скачиваем новую версию app-release.apk
+
+Выполняем команды последовательно
 ```shell
 adb root
 adb install --user 0 app-release.apk
 adb shell am start-foreground-service --user 0 -n com.example.voiceapp3/.VoiceAssistantService
 ```
 
+# Обновление ассистента для устройств без root
+Скачиваем новую версию app-release-nonroot.apk
 
-Поддержать создателя =)
+Выполняем команды последовательно
+```shell
+adb push app-release-nonroot.apk /data/local/tmp
+adb shell pm install -d -r -g --user current /data/local/tmp/app-release-nonroot.apk
+```
+
+
+# Удаление ассистента для устройств с root
+
+Выполняем команды последовательно
+```shell
+adb root
+adb remount
+adb shell pm uninstall --user 0 com.example.voiceapp3
+adb shell rm -rf /system/priv-app/VoiceAssistant
+adb reboot
+```
+
+
+# Удаление ассистента для устройств без root
+
+Выполняем команды последовательно
+```shell
+adb shell pm uninstall --user current com.example.voiceapp3
+adb reboot
+```
+
+
+# Поддержать создателя =)
+Голосовой ассистент выложен в открытый доступ, развивается и поддерживается силами одного человека на безвозмездной основе.
+
+Никаких запретов на использование кода и приложения нет, но в качестве благодарности создателю Вы можете оставить донат по ссылке ниже:
+
 https://donate.stream/donate_68a45fabdb2f8
 
-### Powered by DeepSeek production =)
+Обратная связь, конструктивная критика и предложения приветствуются, но не обязательно будут выполнены. Спасибо.
+
+### Development by @sniiick
+### Powered by DeepSeek production

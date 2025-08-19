@@ -1,6 +1,7 @@
 package com.example.voiceapp3.tools
 
 import android.annotation.SuppressLint
+import android.util.Log
 
 enum class ModelEnum(val value: String) {
     STARSHIP("P145"),
@@ -17,13 +18,27 @@ object CarModel {
     @SuppressLint("PrivateApi")
     fun getCarModel(): ModelEnum {
         return try {
-            val modelValue = Class.forName("android.os.SystemProperties")
-                .getMethod("get", String::class.java)
-                .invoke(null, "ro.product.system.model") as? String
+            val systemPropertiesClass = Class.forName("android.os.SystemProperties")
+            val getMethod = systemPropertiesClass.getMethod("get", String::class.java)
 
+            val propertiesToCheck = listOf("ro.product.system.model", "ro.product.model")
+            var modelValue: String? = null
+
+            for (propertyName in propertiesToCheck) {
+                val value = getMethod.invoke(null, propertyName) as? String
+                Log.i("CarModel", "Property $propertyName = '$value'")
+
+                if (!value.isNullOrBlank()) {
+                    modelValue = value
+                    break
+                }
+            }
+
+            Log.i("CarModel", "Selected MODEL: $modelValue")
             ModelEnum.values().firstOrNull { it.value == modelValue } ?: ModelEnum.UNKNOWN
 
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e("CarModel", "Failed to get car model", e)
             ModelEnum.UNKNOWN
         }
     }
