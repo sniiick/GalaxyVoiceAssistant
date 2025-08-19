@@ -14,10 +14,11 @@ ADB root и ADB remount позволяют Вам выполнить необр�
 
 Приложение тестировалось на:
 1. Starship 7 1.7.3 ENcars (root)
-2. Starship 7 1.7.4 stock (nonroot)
-3. Starship 7 1.8.0 stock (root)
-4. Boyue L stock (root)
-5. E5 stock (root)
+2. Starship 7 1.7.4 ENcars (root)
+3. Starship 7 1.7.4 stock (nonroot)
+4. Starship 7 1.8.0 stock (root)
+5. Boyue L stock (root)
+6. E5 stock (root)
 
 
 # Предварительные требования
