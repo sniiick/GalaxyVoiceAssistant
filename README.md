@@ -29,5 +29,7 @@ adb shell am start-foreground-service --user 0 -n com.example.voiceapp3/.VoiceAs
 ```
 
 
+Поддержать создателя =)
+https://donate.stream/donate_68a45fabdb2f8
 
 ### Powered by DeepSeek production =)
