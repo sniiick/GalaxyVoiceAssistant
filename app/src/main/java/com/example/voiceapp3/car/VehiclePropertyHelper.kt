@@ -6,15 +6,17 @@ import android.util.Log
 
 class VehiclePropertyHelper(context: Context) {
     private val TAG: String = "VehiclePropertyHelper"
-    private var car: Car? = null
+    private lateinit var car: Car
     var propertyManager: CarPropertyManager? = null
 
     init {
         try {
             car = Car.createCar(context)
-            car?.let {
+            car.let {
                 propertyManager = it.getCarManager(Car.PROPERTY_SERVICE) as CarPropertyManager
             }
+
+
         } catch (e: Exception) {
             Log.e(TAG, "Error connecting to car service", e)
         }
@@ -145,8 +147,7 @@ class VehiclePropertyHelper(context: Context) {
         }
     }
     fun disconnect() {
-        car?.disconnect()
-        car = null
+        car.disconnect()
         propertyManager = null
     }
 }

@@ -1,6 +1,8 @@
 package com.example.voiceapp3.handlers
 
 import android.util.Log
+import com.example.voiceapp3.CommandParams
+import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
 
@@ -53,28 +55,24 @@ class SeatMassageHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
     }
 
     private fun handleSetMassage(params: CommandParams, targetSeats: Set<Int>): Boolean {
-        return when {
-            // Handle power setting
+        val power = when {
             params.value != null && params.unit == "percent" -> {
-                val power = when (params.value) {
+                when (params.value) {
                     1 -> 1
                     50 -> 2
                     100 -> 3
-                    else -> return false
+                    else -> 2
                 }
-                setMassagePower(targetSeats, power)
             }
-            // Handle type setting
-            params.value != null && params.unit == "number" && TYPE_ACTION -> {
-                setMassageType(targetSeats, params.value)
-            }
-            // Handle massage level setting
             params.value != null && params.unit == "number" -> {
-                setMassagePower(targetSeats, params.value )
+                if (TYPE_ACTION) {
+                    return setMassageType(targetSeats, params.value)
+                }
+                params.value
             }
-            // Default case - just turn on massage
-            else -> setMassagePower(targetSeats)
+            else -> 2
         }
+        return setMassagePower(targetSeats, power)
     }
 
     private fun handleUnsetMassage(targetSeats: Set<Int>): Boolean {
@@ -136,8 +134,7 @@ class SeatMassageHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
         }
         return success
     }
-
-    private fun setMassagePower(targetSeats: Set<Int>, power: Int = 2): Boolean {
+    private fun setMassagePower(targetSeats: Set<Int>, power: Int): Boolean {
         var success = turnOnMassage(targetSeats)
 
         val clampedPower = when {
@@ -157,7 +154,7 @@ class SeatMassageHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
     }
 
     private fun setMassageType(targetSeats: Set<Int>, type: Int): Boolean {
-        var success = turnOnMassage(targetSeats) && setMassagePower(targetSeats)
+        var success = turnOnMassage(targetSeats)
 
         val clampedType = when {
             type > MAX_TYPE -> MAX_TYPE
@@ -166,6 +163,11 @@ class SeatMassageHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
         }
 
         for (seat in targetSeats) {
+            val currentPower = vehiclePropertyHelper.getIntProperty(MASSAGE_POWER, seat)
+            if (currentPower == 0) {
+                success = success && setMassagePower(setOf(seat), 2)
+            }
+
             success = success && vehiclePropertyHelper.setIntProperty(
                 MASSAGE_TYPE,
                 seat,

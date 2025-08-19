@@ -1,7 +1,7 @@
 package com.example.voiceapp3
 
+import android.Manifest
 import android.annotation.SuppressLint
-import android.app.ActivityManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -10,6 +10,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.graphics.PixelFormat
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
@@ -31,11 +32,14 @@ import android.view.WindowManager
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.airbnb.lottie.LottieAnimationView
+import com.airbnb.lottie.LottieDrawable
 import com.example.voiceapp3.car.CarAudioPlayer
+import com.example.voiceapp3.car.MediaCenterBridge
 import com.example.voiceapp3.car.VehiclePropertyHelper
-import com.example.voiceapp3.handlers.IntentHandlerRegistry
+import com.example.voiceapp3.media.MediaSessionCoordinator
 import org.json.JSONException
 import org.json.JSONObject
 import org.vosk.Model
@@ -72,6 +76,7 @@ class VoiceAssistantService : Service() {
     private lateinit var audioManager: AudioManager
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var audioFocusRequest: AudioFocusRequest
+    private lateinit var mediaCenterBridge: MediaCenterBridge
     private var model: Model? = null
     private lateinit var intentModel: ActionModel
     private var recognizer: Recognizer? = null
@@ -89,11 +94,16 @@ class VoiceAssistantService : Service() {
     )
 
     private fun checkAndRequestPermissions(): Boolean {
-        if (!PermissionHelper.hasAudioPermission(this)) {
-            showPermissionNotification()
-            return false
+        val permitted = ContextCompat.checkSelfPermission(
+            applicationContext,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (permitted) {
+            return true
         }
-        return true
+        showPermissionNotification()
+        return false
+
     }
 
     private fun showPermissionNotification() {
@@ -136,17 +146,23 @@ class VoiceAssistantService : Service() {
     override fun onCreate() {
         System.setProperty("java.regex.implementation", "com.ibm.icu.impl.regex.RE2Impl")
         System.setProperty("java.util.regex.Pattern.impl", "com.ibm.icu.impl.regex.PatternImpl")
-
-        super.onCreate()
         createNotificationChannel()
         startForegroundService()
         Log.i(TAG, "Service creating")
-        if (isBackgroundRestricted()) {
-            Log.w(TAG, "Background restricted - guide user to disable")
-        }
+
+        mediaCenterBridge = MediaCenterBridge(applicationContext, this)
+        mediaCenterBridge.start()
+
+        val sessionListener = MediaSessionCoordinator(this, mediaCenterBridge)
+        sessionListener.cleanExpiredCache()
+
+        mediaCenterBridge.setMediaSessionCoordinator(sessionListener)
+        super.onCreate()
+
         checkAndRequestPermissions()
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         vehiclePropertyHelper = VehiclePropertyHelper(applicationContext)
+
         carAudioPlayer = CarAudioPlayer(applicationContext)
         initMediaPlayer()
         initAudioFocusRequest()
@@ -167,7 +183,10 @@ class VoiceAssistantService : Service() {
         super.onDestroy()
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onBind(intent: Intent?): IBinder? {
+        Log.i(TAG, "MAIN Service Binded")
+        return null
+    }
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     private fun registerKeyReceiver() {
@@ -220,6 +239,7 @@ class VoiceAssistantService : Service() {
             .build()
     }
 
+    @SuppressLint("InflateParams")
     private fun initOverlay() {
         if (!checkOverlayPermission()) {
             requestOverlayPermission()
@@ -238,10 +258,11 @@ class VoiceAssistantService : Service() {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE  or
                         WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
-                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                 PixelFormat.TRANSLUCENT
             ).apply {
-                gravity = Gravity.TOP or Gravity.START
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
                 x = 0
                 y = 0
             }
@@ -251,6 +272,8 @@ class VoiceAssistantService : Service() {
             val lottieView = overlayView?.findViewById<LottieAnimationView>(R.id.mic_animation)
             lottieView?.apply {
                 setAnimation(R.raw.mic_pulse)
+                setRepeatMode(LottieDrawable.REVERSE)
+                setRepeatCount(LottieDrawable.INFINITE)
                 playAnimation()
             }
             Log.i(TAG, "Overlay initialized successfully")
@@ -308,7 +331,7 @@ class VoiceAssistantService : Service() {
 
     @SuppressLint("MissingPermission")
     private fun startRecognition() {
-        if (!PermissionHelper.hasAudioPermission(this)) {
+        if (!checkAndRequestPermissions()) {
             Log.w(TAG, "Audio permission not granted")
             return
         }
@@ -678,6 +701,8 @@ class VoiceAssistantService : Service() {
         try {
             unregisterReceiver(keyEventReceiver)
 
+            mediaCenterBridge.stop()
+
             // Stop and release audio resources
             shouldContinueRecording = false
             isRecognizing = false
@@ -719,10 +744,6 @@ class VoiceAssistantService : Service() {
         } catch (e: Exception) {
             Log.e(TAG, "Error during cleanup", e)
         }
-    }
-
-    private fun isBackgroundRestricted(): Boolean {
-        return (getSystemService(ACTIVITY_SERVICE) as ActivityManager).isBackgroundRestricted
     }
 
     private fun startForegroundService() {

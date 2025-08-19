@@ -13,8 +13,8 @@ android {
         applicationId = "com.example.voiceapp3"
         minSdk = 28
         targetSdk = 32
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 75
+        versionName = "7.0.2024_1203_1849-p145"
     }
 
     buildFeatures {
@@ -29,9 +29,15 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    packagingOptions {
+        jniLibs.useLegacyPackaging = true
+    }
 }
 
 dependencies {
+    implementation("androidx.core:core:1.7.0")
+    implementation("androidx.media:media:1.6.0")
+
     implementation("androidx.appcompat:appcompat:1.3.1")
     implementation("com.google.android.material:material:1.9.0")
     implementation("net.java.dev.jna:jna:5.14.0@aar")
