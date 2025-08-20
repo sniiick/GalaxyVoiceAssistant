@@ -28,6 +28,7 @@ class OpenAppHandler(private val context: Context) : IntentHandler {
 
     private fun getEngineerIntent() : Intent {
         if (CarModel.getCarModel() == ModelEnum.E5) {
+            Log.i(TAG, "Not supported for E5 model, returning empty intent.")
             return Intent()
         }
 
@@ -37,10 +38,12 @@ class OpenAppHandler(private val context: Context) : IntentHandler {
                 "persist.switch.usbmode",
                 "true"
             )
+            Log.i(TAG, "Activated EngineerApp")
         } catch (e: SecurityException) {
             Log.i(TAG, "Error setting usbmode to true: ${e.toString()}")
         }
 
+        Log.i(TAG, "Opening EngineerApp")
         return Intent().apply {
             component = ComponentName(
                 "com.geely.engineermode",
@@ -71,7 +74,7 @@ class OpenAppHandler(private val context: Context) : IntentHandler {
             commandText.contains(key)
         }?.let { (_, intent) ->
             return try {
-                if (intent.component == null || intent.action == null) {
+                if (intent.component == null && intent.action == null) {
                     return false
                 }
                 intent.apply {
