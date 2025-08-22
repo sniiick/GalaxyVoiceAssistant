@@ -5,13 +5,15 @@ import com.example.voiceapp3.CommandParams
 import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
+import com.example.voiceapp3.tools.CarModel
+import com.example.voiceapp3.tools.ModelEnum
 
 class WindowControlHandler(private val vehiclePropertyHelper: VehiclePropertyHelper) :
     IntentHandler {
     private val TAG: String? = "WindowControlHandler"
 
     // Property ID for all windows
-    private val WINDOW_CONTROL = 322964416
+    private var WINDOW_CONTROL = 322964416
 
     // Area IDs
     private val LEFT_FRONT_WINDOW = 16
@@ -22,14 +24,20 @@ class WindowControlHandler(private val vehiclePropertyHelper: VehiclePropertyHel
     private val SUNROOF_CURTAIN = 131072
 
     // Value constraints
-    private val MIN_VALUE = 0
+    private var MIN_VALUE = 0
     private val MAX_VALUE = 100
     private val VALUE_STEP = 4
-    private val MIN_OPERATIONAL_VALUE = 12
-    private val MAX_OPERATIONAL_VALUE = 88
+
+    // Real min/max values differs to set from CarPropertyManager
+    private var MIN_WINDOW_OPERATIONAL_VALUE = 12
+    private var MIN_SUNROOF_OPERATIONAL_VALUE = 12
+    private var MIN_CURTAIN_OPERATIONAL_VALUE = 12
+    private var MAX_WINDOW_OPERATIONAL_VALUE = 88
+    private var MAX_SUNROOF_OPERATIONAL_VALUE = 88
+    private var MAX_CURTAIN_OPERATIONAL_VALUE = 88
 
     // Regex patterns for special cases
-    private val sunroofRegex = Regex("люк|крыш[ауеи]|верхнее|сверху|наверху", RegexOption.IGNORE_CASE)
+    private val sunroofRegex = Regex("люк|крыш[ауеи]|верхнее|сверху|наверху|панорам[ау]]", RegexOption.IGNORE_CASE)
     private val curtainRegex = Regex("шторк[ау]", RegexOption.IGNORE_CASE)
     private val pluralRegex = Regex("окна|ст[ёе]кла", RegexOption.IGNORE_CASE)
     private val aBitRegex = Regex("чуть|при откр|приоткр|приподн|призакр|приопуст|немного|слегка", RegexOption.IGNORE_CASE)
@@ -38,7 +46,12 @@ class WindowControlHandler(private val vehiclePropertyHelper: VehiclePropertyHel
     override fun canHandle(intent: String): Boolean = intent == "window_control"
 
     override fun handle(prediction: PredictionResult): Boolean {
-        val params = extractCommonEntities(prediction)
+        var params = extractCommonEntities(prediction)
+
+        if (CarModel.isCoolray) {
+            WINDOW_CONTROL = 591405227
+            MIN_CURTAIN_OPERATIONAL_VALUE = 16
+        }
 
         if (aBitRegex.containsMatchIn(prediction.normalizedText) && params.value == null) {
             aBit = true
@@ -55,13 +68,23 @@ class WindowControlHandler(private val vehiclePropertyHelper: VehiclePropertyHel
     private fun handleSunroof(params: CommandParams): Boolean {
         return when (params.action) {
             "set" -> {
-                // When opening sunroof, also open curtain
-                val success = setWindowValue(SUNROOF_CURTAIN, MAX_VALUE)
-                success && setWindowValue(SUNROOF, calculateFinalValue(params.value ?: MAX_VALUE, false))
+                val sunroofValue = calculateFinalValue(params.value ?: MAX_VALUE, false, sunRoof = true, curtain = false)
+
+                // Calculate desired curtain value (sunroof + STEP, but not exceeding MAX_VALUE)
+                val desiredCurtainValue = calculateFinalValue(minOf(sunroofValue + VALUE_STEP, MAX_VALUE), false, sunRoof = false, curtain = true)
+                val currentCurtainValue = vehiclePropertyHelper.getIntProperty(WINDOW_CONTROL, SUNROOF_CURTAIN)
+
+                setWindowValue(SUNROOF, sunroofValue)
+                // Only adjust curtain if current value is less than desired value
+                if (currentCurtainValue < desiredCurtainValue) {
+                    setWindowValue(SUNROOF_CURTAIN, desiredCurtainValue)
+                }
+                true
             }
             "unset" -> {
                 // When closing sunroof, don't touch curtain
-                setWindowValue(SUNROOF, calculateFinalValue(params.value ?: MAX_VALUE, true))
+                setWindowValue(SUNROOF, calculateFinalValue(params.value ?: MAX_VALUE, true, sunRoof = true, curtain = false))
+                true
             }
             else -> false
         }
@@ -69,8 +92,8 @@ class WindowControlHandler(private val vehiclePropertyHelper: VehiclePropertyHel
 
     private fun handleCurtain(params: CommandParams): Boolean {
         return when (params.action) {
-            "set" -> setWindowValue(SUNROOF_CURTAIN, calculateFinalValue(params.value ?: MAX_VALUE, false))
-            "unset" -> setWindowValue(SUNROOF_CURTAIN, calculateFinalValue(params.value ?: MAX_VALUE, true))
+            "set" -> setWindowValue(SUNROOF_CURTAIN, calculateFinalValue(params.value ?: MAX_VALUE, false, sunRoof = false, curtain = true))
+            "unset" -> setWindowValue(SUNROOF_CURTAIN, calculateFinalValue(params.value ?: MAX_VALUE, true, sunRoof = false, curtain = true))
             else -> false
         }
     }
@@ -104,9 +127,19 @@ class WindowControlHandler(private val vehiclePropertyHelper: VehiclePropertyHel
         return success
     }
 
-    private fun calculateFinalValue(requestedValue: Int, isCloseCommand: Boolean): Int {
+    private fun calculateFinalValue(requestedValue: Int, isCloseCommand: Boolean, sunRoof: Boolean = false, curtain: Boolean = false): Int {
+        var minOperationalValue = MIN_WINDOW_OPERATIONAL_VALUE
+        var maxOperationalValue = MAX_WINDOW_OPERATIONAL_VALUE
+        if (sunRoof) {
+            minOperationalValue = MIN_SUNROOF_OPERATIONAL_VALUE
+            maxOperationalValue = MAX_SUNROOF_OPERATIONAL_VALUE
+        } else if (curtain) {
+            minOperationalValue = MIN_CURTAIN_OPERATIONAL_VALUE
+            maxOperationalValue = MAX_CURTAIN_OPERATIONAL_VALUE
+        }
+
         val correctedValue = if (aBit) {
-            MIN_OPERATIONAL_VALUE
+            minOperationalValue
         } else if (requestedValue > 100) {
             MAX_VALUE
         } else if (requestedValue < 0) {
@@ -130,12 +163,12 @@ class WindowControlHandler(private val vehiclePropertyHelper: VehiclePropertyHel
             steppedValue == 100 -> {
                 MAX_VALUE
             }
-            steppedValue < MIN_OPERATIONAL_VALUE -> {
-                if (MIN_OPERATIONAL_VALUE % VALUE_STEP == 0) MIN_OPERATIONAL_VALUE
-                else MIN_OPERATIONAL_VALUE + (VALUE_STEP - MIN_OPERATIONAL_VALUE % VALUE_STEP)
+            steppedValue < minOperationalValue -> {
+                if (minOperationalValue % VALUE_STEP == 0) minOperationalValue
+                else minOperationalValue + (VALUE_STEP - minOperationalValue % VALUE_STEP)
             }
-            steppedValue > MAX_OPERATIONAL_VALUE -> {
-                MAX_OPERATIONAL_VALUE - (MAX_OPERATIONAL_VALUE % VALUE_STEP)
+            steppedValue > maxOperationalValue -> {
+                maxOperationalValue - (maxOperationalValue % VALUE_STEP)
             }
             else -> steppedValue
         }

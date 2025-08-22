@@ -7,6 +7,7 @@ import com.example.voiceapp3.CommandParams
 import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
+import java.lang.Float.sum
 import kotlin.math.roundToInt
 
 class ChangeAcTempHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
@@ -37,8 +38,9 @@ class ChangeAcTempHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : In
             }
             params.value != null && params.unit == "percent" -> {
                 when (params.value) {
-                    1 -> { setTemp(minTemp) }
-                    100 -> { setTemp(maxTemp) }
+                    1 -> setTemp(minTemp)
+                    50 -> setTemp((sum(minTemp, maxTemp) / 2f).roundToHalf())
+                    100 -> setTemp(maxTemp)
                     else -> false
                 }
             }
@@ -53,7 +55,7 @@ class ChangeAcTempHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : In
         )
 
         if (currentTemp == -1f) {
-            Log.i(TAG, "Current temperature is unknown")
+            Log.d(TAG, "Current temperature is unknown")
             return false
         }
 

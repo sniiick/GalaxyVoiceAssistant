@@ -23,7 +23,7 @@ class ExternalSoundHandler(private val carAudioPlayer: CarAudioPlayer) : IntentH
             carAudioPlayer.playWithCustomUsage(soundName)
             return true
         } catch (e: Exception) {
-            Log.i(TAG, "Playing external sound failed: $e")
+            Log.e(TAG, "Playing external sound failed: $e")
             return false
         }
     }
@@ -42,15 +42,14 @@ class ExternalSpeechHandler(private val carAudioPlayer: CarAudioPlayer) : Intent
 
     override fun handle(prediction: PredictionResult): Boolean {
         try {
-            // TODO("To be implemented")
-//            val cleanText = removeSpeechPrefix(prediction.text)
-//            if (cleanText.isNotBlank()) {
-//                carAudioPlayer.playTextAsSpeech(cleanText)
-//                return true
-//            }
+            val cleanText = removeSpeechPrefix(prediction.text)
+            if (cleanText.isNotBlank()) {
+                carAudioPlayer.playText(cleanText)
+                return true
+            }
             return false
         } catch (e: Exception) {
-            Log.i(TAG, "Playing external sound failed: $e")
+            Log.e(TAG, "Playing external sound failed: $e")
             return false
         }
     }

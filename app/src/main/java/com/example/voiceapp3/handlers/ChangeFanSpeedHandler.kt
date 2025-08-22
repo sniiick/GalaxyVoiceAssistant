@@ -6,6 +6,9 @@ import com.example.voiceapp3.CommandParams
 import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
+import com.example.voiceapp3.tools.CarModel
+import com.example.voiceapp3.tools.ModelEnum
+import java.lang.Integer.sum
 
 
 class ChangeFanSpeedHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
@@ -13,13 +16,37 @@ class ChangeFanSpeedHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : 
     private val acControlHandler: AcControlHandler = AcControlHandler(vehiclePropertyHelper)
     private val areaId: Int = 5
     private val defaultSpeedChange: Int = 1
-    private val minSpeed: Int = 1
-    private val maxSpeed: Int = 9
+    private var minSpeed: Int = 1
+    private var maxSpeed: Int = 9
 
     override fun canHandle(intent: String): Boolean = intent == "change_fan_speed"
 
     override fun handle(prediction: PredictionResult): Boolean {
+        if (CarModel.isCoolray) {
+            maxSpeed = 8
+        }
+
         val params = extractCommonEntities(prediction)
+        val directions = mutableSetOf<Int>()
+
+        if (prediction.normalizedText.contains(Regex("салон|внутр|лицо"))) directions.add(1)
+        if (prediction.normalizedText.contains(Regex("ног|вниз"))) directions.add(2)
+        if (prediction.normalizedText.contains(Regex("стекл|стёкл|вверх|лобов"))) directions.add(4)
+        if (prediction.normalizedText.contains(Regex("везде|всюду|всего|всё|вместе"))) {
+            directions.clear()
+            directions.add(7)
+        }
+        if (!directions.isEmpty()) {
+            handleSetFanSpeed(params, shouldSetAuto = false)
+
+            val isMultiple = prediction.normalizedText.contains("плюс") || directions.size > 1
+            if (isMultiple) {
+                val combinedDirection = directions.reduce { acc, dir -> acc + dir }
+                return acControlHandler.setAcDirection(combinedDirection)
+            } else {
+                return acControlHandler.setAcDirection(directions.first())
+            }
+        }
 
         return when (params.action) {
             "set" -> handleSetFanSpeed(params)
@@ -30,7 +57,7 @@ class ChangeFanSpeedHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : 
         }
     }
 
-    private fun handleSetFanSpeed(params: CommandParams): Boolean {
+    private fun handleSetFanSpeed(params: CommandParams, shouldSetAuto: Boolean = true): Boolean {
         return when {
             params.value != null && params.unit == "number" -> {
                 setFanSpeed(params.value)
@@ -38,11 +65,18 @@ class ChangeFanSpeedHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : 
             params.value != null && params.unit == "percent" -> {
                 when (params.value) {
                     1 -> setFanSpeed(minSpeed)
+                    50 -> setFanSpeed(sum(minSpeed, maxSpeed) / 2)
                     100 -> setFanSpeed(maxSpeed)
                     else -> false
                 }
             }
-            else -> false
+            else -> {
+                if (shouldSetAuto) {
+                    acControlHandler.turnOnAc(setAuto = true)
+                } else {
+                    false
+                }
+            }
         }
     }
 
@@ -53,7 +87,7 @@ class ChangeFanSpeedHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : 
         )
 
         if (currentSpeed == -1) {
-            Log.i(TAG, "Current speed is unknown")
+            Log.d(TAG, "Current speed is unknown")
             return false
         }
 

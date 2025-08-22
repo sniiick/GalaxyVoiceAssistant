@@ -21,6 +21,7 @@ object RussianEntityExtractor {
         Regex("горячее", RegexOption.IGNORE_CASE),
         Regex("жарче", RegexOption.IGNORE_CASE),
         Regex("громче", RegexOption.IGNORE_CASE),
+        Regex("ярче", RegexOption.IGNORE_CASE),
     )
 
     private val decreasePatterns = listOf(
@@ -38,6 +39,7 @@ object RussianEntityExtractor {
         Regex("меньше", RegexOption.IGNORE_CASE),
         Regex("слабее", RegexOption.IGNORE_CASE),
         Regex("тише", RegexOption.IGNORE_CASE),
+        Regex("темнее", RegexOption.IGNORE_CASE),
     )
 
     private val setPatterns = listOf(
@@ -51,15 +53,18 @@ object RussianEntityExtractor {
         Regex("вкл(?:ючи|ючай|ючить)"),
         Regex("откр(?:ой|ыть|ывать)"),
         Regex("опус(?:ти|кай|тить)"),
+        Regex("запус(?:ти|кай|тить)|запуск"),
+        Regex("заве(?:ди|сти)|заводи"),
     )
 
     private val unSetPatterns = listOf(
-        Regex("убер(?:и|ать|ай)"),
-        Regex("выкл(?:ючи|ючай|ючить)"),
-        Regex("откл(?:ючи|ючай|ючить)"),
+        Regex("убер(?:и|ать|ай)|убрать|убирать"),
+        Regex("выкл(?:ючи|ючай|ючить|ючать)"),
+        Regex("откл(?:ючи|ючай|ючить)|откл"),
         Regex("отмен(?:а|и|яй|ять|ить)"),
         Regex("закр(?:ой|ыть|ывать)"),
         Regex("под(?:ними|нимай|нимать|нять)"),
+        Regex("загл(?:уши|ушить)|пога(?:си|сить)|заглохн(?:и|уть)"),
     )
 
     // Direction and Position
@@ -75,9 +80,9 @@ object RussianEntityExtractor {
     private val all = Regex("вс[её]|весь|всем|всех|всю", RegexOption.IGNORE_CASE)
 
     // Special values
-    private val maxPattern = Regex("макс(?:имум|имальн(?:ый|ая|ое|ые))|наибольш(?:ий|ая|ее|ие)|полн(?:ый|ая|ое|ые|остью)", RegexOption.IGNORE_CASE)
-    private val minPattern = Regex("мин(?:имум|имальн(?:ый|ая|ое|ые))|наименьш(?:ий|ая|ее|ие)", RegexOption.IGNORE_CASE)
-    private val midPattern = Regex("средн(?:ий|яя|ее)|половин[ауеы]|наполовину", RegexOption.IGNORE_CASE)
+    private val maxPattern = Regex("макс(?:имум|имальн)|наибольш|полн(?:ый|ая|ое|ые|остью)", RegexOption.IGNORE_CASE)
+    private val minPattern = Regex("мин(?:имум|имальн)|наименьш", RegexOption.IGNORE_CASE)
+    private val midPattern = Regex("средн(?:ий|яя|ее|юю|е)|середин|половин|наполовин", RegexOption.IGNORE_CASE)
 
     fun extractEntities(text: String): Map<String, Any> {
         val entities = mutableMapOf<String, Any>()

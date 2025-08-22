@@ -5,13 +5,15 @@ import com.example.voiceapp3.CommandParams
 import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
+import com.example.voiceapp3.tools.CarModel
+import com.example.voiceapp3.tools.ModelEnum
 
 class SeatClimateHandler(private val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
     private val TAG: String? = "SeatClimateHandler"
 
     // Property IDs
-    private val VENTILATION_PROPERTY = 356517139
-    private val HEAT_PROPERTY = 356517131
+    private var VENTILATION_PROPERTY = 356517139
+    private var HEAT_PROPERTY = 356517131
 
     // Area IDs
     private val PILOT_SEAT = 1
@@ -26,6 +28,17 @@ class SeatClimateHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
     override fun handle(prediction: PredictionResult): Boolean {
         val isVentilation = prediction.intent == "seat_ventilation"
         val params = extractCommonEntities(prediction)
+
+        if (prediction.normalizedText.contains(Regex("зеркал|стекл|стекол|стёкл|стёкол"))) {
+            // not about seats, about windows/mirrors
+            val acControlHandler = AcControlHandler(vehiclePropertyHelper)
+            return when (params.action) {
+                "set" -> acControlHandler.setWindowHeat(true)
+                "unset" -> acControlHandler.setWindowHeat(false)
+                else -> acControlHandler.setWindowHeat(true)
+            }
+        }
+
         val targetSeats = determineTargetSeats(prediction)
 
         return when (params.action) {
@@ -38,6 +51,11 @@ class SeatClimateHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
     }
 
     private fun determineTargetSeats(prediction: PredictionResult): Set<Int> {
+        val pluralRegex = Regex("кресел|сидений|сидушек|диванов", RegexOption.IGNORE_CASE)
+        if (pluralRegex.containsMatchIn(prediction.normalizedText)) {
+            return setOf(PILOT_SEAT, PASSENGER_SEAT)
+        }
+
         return when (prediction.getString("direction")) {
             "left" -> setOf(PILOT_SEAT)
             "right" -> setOf(PASSENGER_SEAT)
@@ -90,7 +108,7 @@ class SeatClimateHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
         for (seat in targetSeats) {
             val currentPower = vehiclePropertyHelper.getIntProperty(propertyId, seat)
             if (currentPower == -1) {
-                Log.i(TAG, "Current power is unknown for seat $seat")
+                Log.d(TAG, "Current power is unknown for seat $seat")
                 success = false
                 continue
             }

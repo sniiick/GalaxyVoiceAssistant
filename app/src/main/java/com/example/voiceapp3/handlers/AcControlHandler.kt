@@ -22,7 +22,7 @@ class AcControlHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : Inten
     }
 
     fun turnOnAc(setAuto: Boolean = true): Boolean {
-        Log.i(TAG, "Turning AC ON")
+        Log.d(TAG, "Turning AC ON")
         val acOn = vehiclePropertyHelper.setBoolProperty(
             VehiclePropertyIds.HVAC_AC_ON,
             117,
@@ -47,7 +47,7 @@ class AcControlHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : Inten
     }
 
     fun turnOffAc(): Boolean {
-        Log.i(TAG, "Turning AC OFF")
+        Log.d(TAG, "Turning AC OFF")
         val acOn = vehiclePropertyHelper.setBoolProperty(
             VehiclePropertyIds.HVAC_AC_ON,
             117,
@@ -64,5 +64,21 @@ class AcControlHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : Inten
             false
         )
         return acOn && acAutoOn and acPowerOn
+    }
+
+    fun setAcDirection(direction: Int): Boolean {
+        return vehiclePropertyHelper.setIntProperty(
+            VehiclePropertyIds.HVAC_FAN_DIRECTION,
+            1,
+            direction
+        )
+    }
+
+    fun setWindowHeat(on: Boolean): Boolean {
+        return vehiclePropertyHelper.setBoolProperty(
+            354419988,
+            2,
+            on
+        )
     }
 }

@@ -39,7 +39,7 @@ class SeatMassageHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
                 MASSAGE_TYPE = 624980193
                 MAX_TYPE = 8
             }
-            ModelEnum.E5 -> {
+            ModelEnum.E5, ModelEnum.E5v2, ModelEnum.EX5 -> {
                 MASSAGE_SWITCH = 622883021
                 MASSAGE_POWER = 624980170
                 MASSAGE_TYPE = 624980174
@@ -122,7 +122,7 @@ class SeatMassageHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
         for (seat in targetSeats) {
             val currentPower = vehiclePropertyHelper.getIntProperty(MASSAGE_POWER, seat)
             if (currentPower == -1) {
-                Log.i(TAG, "Current power is unknown for seat $seat")
+                Log.d(TAG, "Current power is unknown for seat $seat")
                 success = false
                 continue
             }

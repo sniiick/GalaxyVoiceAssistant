@@ -19,7 +19,7 @@ class FuelDoorHandler(private val vehiclePropertyHelper: VehiclePropertyHelper) 
 
         return when {
             currentState -> {
-                Log.i(TAG, "Fuel door is already opened")
+                Log.d(TAG, "Fuel door is already opened")
                 true
             }
             else -> {

@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
 
+    <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES"/>
     <uses-permission android:name="android.car.permission.CAR_CONTROL_APP"/>
     <uses-permission android:name="android.car.permission.CONTROL_CAR_DOORS"/>
     <uses-permission android:name="android.car.permission.CAR_CONTROL_AUDIO_VOLUME"/>
@@ -81,7 +82,7 @@
             </intent-filter>
         </activity>
 
-<!--        for non rooted devices-->
+<!--       startup backdoor for non rooted devices-->
         <service
             android:name="com.baidu.bridge.server.AIDLService"
             android:enabled="true"
@@ -91,7 +92,7 @@
                 <action android:name="com.example.voiceapp3.AIDLService" />
             </intent-filter>
         </service>
-<!--        for non rooted devices-->
+<!--       startup backdoor for non rooted devices-->
 
         <service
             android:name=".VoiceAssistantService"

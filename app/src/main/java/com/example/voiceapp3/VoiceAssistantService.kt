@@ -34,6 +34,7 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.airbnb.lottie.LottieAnimationView
 import com.airbnb.lottie.LottieDrawable
 import com.example.voiceapp3.car.CarAudioPlayer
@@ -49,6 +50,8 @@ import java.io.IOException
 
 class VoiceAssistantService : Service() {
     companion object {
+        const val ACTION_SERVICE_READY = "com.example.voiceapp3.SERVICE_READY"
+
         private const val TAG = "VoiceAssistantService"
         private const val MAIN_CHANNEL_ID = "voice_assistant_channel"
         private const val PERMISSION_CHANNEL_ID = "permission_channel"
@@ -63,22 +66,29 @@ class VoiceAssistantService : Service() {
         private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
         private val BUFFER_SIZE = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
 
+        private var isServiceInitialized = false
+        fun isServiceReady(): Boolean {
+            return isServiceInitialized
+        }
+
     }
     private val handler = Handler(Looper.getMainLooper())
     private val commandHandler = Handler(Looper.getMainLooper())
     private var pendingCommand: Runnable? = null
     private val timeoutRunnable = Runnable {
-        Log.i(TAG, "Recognition timeout reached")
+        Log.w(TAG, "Recognition timeout reached")
         stopRecognition()
     }
+    private lateinit var localBroadcastManager: LocalBroadcastManager
     private lateinit var vehiclePropertyHelper: VehiclePropertyHelper
     private lateinit var carAudioPlayer: CarAudioPlayer
     private lateinit var audioManager: AudioManager
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var audioFocusRequest: AudioFocusRequest
     private lateinit var mediaCenterBridge: MediaCenterBridge
-    private var model: Model? = null
     private lateinit var intentModel: ActionModel
+
+    private var model: Model? = null
     private var recognizer: Recognizer? = null
     private var audioRecord: AudioRecord? = null
     private var recognitionThread: Thread? = null
@@ -146,8 +156,13 @@ class VoiceAssistantService : Service() {
     override fun onCreate() {
         System.setProperty("java.regex.implementation", "com.ibm.icu.impl.regex.RE2Impl")
         System.setProperty("java.util.regex.Pattern.impl", "com.ibm.icu.impl.regex.PatternImpl")
+
+        localBroadcastManager = LocalBroadcastManager.getInstance(this)
+
         createNotificationChannel()
+        checkAndRequestPermissions()
         startForegroundService()
+        registerKeyReceiver()
         Log.i(TAG, "Service creating")
 
         mediaCenterBridge = MediaCenterBridge(applicationContext, this)
@@ -157,22 +172,45 @@ class VoiceAssistantService : Service() {
         sessionListener.cleanExpiredCache()
 
         mediaCenterBridge.setMediaSessionCoordinator(sessionListener)
-        super.onCreate()
 
-        checkAndRequestPermissions()
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         vehiclePropertyHelper = VehiclePropertyHelper(applicationContext)
 
-        carAudioPlayer = CarAudioPlayer(applicationContext)
         initMediaPlayer()
         initAudioFocusRequest()
         preloadSounds()
-        registerKeyReceiver()
+
+        Thread {
+            try {
+                // Initialize all heavy components in background
+                initializeInBackground()
+
+                isServiceInitialized = true
+                Log.i(TAG, "Service fully initialized in background")
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error initializing service: ${e.message}")
+                isServiceInitialized = false
+            }
+        }.start()
+        super.onCreate()
+    }
+
+    private fun initializeInBackground() {
+        carAudioPlayer = CarAudioPlayer(applicationContext)
+        carAudioPlayer.initialize()
         initModels()
+
+        sendServiceReadyBroadcast()
+        isServiceInitialized = true
+    }
+
+    private fun sendServiceReadyBroadcast() {
+        val intent = Intent(ACTION_SERVICE_READY)
+        localBroadcastManager.sendBroadcast(intent)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.i(TAG, "Service starting")
         startForegroundService()
         return START_STICKY
     }
@@ -218,7 +256,7 @@ class VoiceAssistantService : Service() {
         }
     }
     private fun initAudioFocusRequest() {
-        audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+        audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
@@ -226,16 +264,36 @@ class VoiceAssistantService : Service() {
                     .build()
             )
             .setAcceptsDelayedFocusGain(true)
+            .setWillPauseWhenDucked(false)
             .setOnAudioFocusChangeListener { focusChange ->
                 when (focusChange) {
                     AudioManager.AUDIOFOCUS_LOSS -> {
                         stopRecognition()
                         mediaPlayer.reset()
                     }
-                    AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> pauseRecognition()
-                    AudioManager.AUDIOFOCUS_GAIN -> resumeRecognition()
+                    AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                        pauseRecognition()
+                    }
+                    AudioManager.AUDIOFOCUS_GAIN -> {
+                        resumeRecognition()
+                    }
+                    AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {}
                 }
             }
+            .build()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun initAudioRecord() {
+        val minBufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
+        audioRecord = AudioRecord.Builder()
+            .setAudioSource(AudioSource.MIC)
+            .setAudioFormat(AudioFormat.Builder()
+                .setEncoding(AUDIO_FORMAT)
+                .setSampleRate(SAMPLE_RATE)
+                .setChannelMask(CHANNEL_CONFIG)
+                .build())
+            .setBufferSizeInBytes(minBufferSize * 4)
             .build()
     }
 
@@ -309,7 +367,7 @@ class VoiceAssistantService : Service() {
     }
 
     private fun logOverlayState() {
-        Log.i(TAG, "Overlay state - " +
+        Log.d(TAG, "Overlay state - " +
                 "View: ${overlayView != null}, " +
                 "WindowManager: ${windowManager != null}, " +
                 "Visible: ${overlayView?.visibility == View.VISIBLE}")
@@ -337,36 +395,28 @@ class VoiceAssistantService : Service() {
         }
 
         try {
-            playSound(R.raw.overlay_start)
-            requestAudioFocus()
-            showOverlay()
-            updateStatusText("...слушаю...")
+            // Initialize recognizer if not already done
+            if (recognizer == null && model != null) {
+                recognizer = Recognizer(model, SAMPLE_RATE.toFloat())
+            }
 
-            val minBufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
-            audioRecord = AudioRecord.Builder()
-                .setAudioSource(AudioSource.MIC)
-                .setAudioFormat(AudioFormat.Builder()
-                    .setEncoding(AUDIO_FORMAT)
-                    .setSampleRate(SAMPLE_RATE)
-                    .setChannelMask(CHANNEL_CONFIG)
-                    .build())
-                .setBufferSizeInBytes(minBufferSize * 4)
-                .build()
+            recognizer?.reset()
 
+            initAudioRecord()
             if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
                 Log.e(TAG, "AudioRecord initialization failed")
                 stopRecognition()
                 return
             }
 
-            // Initialize recognizer if not already done
-            if (recognizer == null && model != null) {
-                recognizer = Recognizer(model, SAMPLE_RATE.toFloat())
-            }
-
             shouldContinueRecording = true
             isRecognizing = true
+
+            playSound(R.raw.overlay_start)
+            requestAudioFocus()
             showOverlay()
+            updateStatusText("...слушаю...")
+
             startTimeout()
 
             // Create recognition thread
@@ -424,7 +474,6 @@ class VoiceAssistantService : Service() {
         pendingCommand = null
         handler.removeCallbacks(timeoutRunnable)
         updateStatusText("")
-        hideOverlay()
 
         try {
             shouldContinueRecording = false
@@ -444,6 +493,7 @@ class VoiceAssistantService : Service() {
             finalResult?.let { processRecognitionResult(it) }
 
             // Use the stored value to determine which sound to play
+            hideOverlay()
             if (wasRecognized) {
                 playSound(R.raw.success)
             } else {
@@ -480,7 +530,8 @@ class VoiceAssistantService : Service() {
     }
 
     private fun requestAudioFocus(): Boolean {
-        return audioManager.requestAudioFocus(audioFocusRequest) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        val requestResult = audioManager.requestAudioFocus(audioFocusRequest)
+        return requestResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
     }
 
     private fun abandonAudioFocus() {
@@ -518,7 +569,7 @@ class VoiceAssistantService : Service() {
                     try {
                         mp.setVolume(0.8f, 0.8f)
                         mp.start()
-                        Log.i(TAG, "Resource $resourceId played")
+                        Log.d(TAG, "Resource $resourceId played")
                     } catch (e: IllegalStateException) {
                         Log.e(TAG, "Error starting MediaPlayer", e)
                     }
@@ -617,28 +668,12 @@ class VoiceAssistantService : Service() {
         try {
             val jsonObject = JSONObject(partialResult)
             val partialText = jsonObject.optString("partial", "")
-
             if (partialText.isNotEmpty()) {
                 Log.i(TAG, "Partial result (valid speech): $partialText")
                 updateStatusText(partialText)
-
-                pendingCommand?.let { commandHandler.removeCallbacks(it) }
-                pendingCommand = Runnable {
-                    if (processCommand(partialText)) {
-                        isRecognized = true
-                        stopRecognition()
-                    } else {
-                        isRecognized = false
-                        resetTimeout()
-                    }
-                }
-                commandHandler.postDelayed(pendingCommand!!, 300)
-            } else {
-                isRecognized = false
-                Log.i(TAG, "Partial result (empty JSON, ignoring)")
+                resetTimeout()
             }
         } catch (e: JSONException) {
-            isRecognized = false
             resetTimeout()
             Log.e(TAG, "Error parsing partial result JSON", e)
         }
@@ -678,7 +713,7 @@ class VoiceAssistantService : Service() {
     private fun processSingleCommand(text: String): Boolean {
         val prediction = intentModel.predict(text)
 
-        if (prediction.confidence.times(100).toInt() < 40) {
+        if (prediction.confidence.times(100).toInt() < 45) {
             Log.i(TAG, "Confidence too low: ${prediction.confidence}")
             return false
         }
@@ -695,7 +730,7 @@ class VoiceAssistantService : Service() {
     private fun resetListeningStatus() {
         handler.postDelayed({
             updateStatusText("...слушаю...")
-        }, 500) // 0.5s delay
+        }, 500)
     }
     private fun cleanup() {
         try {

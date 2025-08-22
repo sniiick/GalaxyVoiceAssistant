@@ -4,18 +4,24 @@ import android.util.Log
 import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
+import com.example.voiceapp3.tools.CarModel
+import com.example.voiceapp3.tools.ModelEnum
 
 class LightControlHandler(private val vehiclePropertyHelper: VehiclePropertyHelper) :
     IntentHandler {
     private val TAG: String? = "LightControlHandler"
 
     // Property ID for reading lights
-    private val LIGHT_CONTROL_PROPERTY = 356544592
+    private var LIGHT_CONTROL_PROPERTY = 356544592
 
     override fun canHandle(intent: String): Boolean = intent == "light_control"
 
     override fun handle(prediction: PredictionResult): Boolean {
         val params = extractCommonEntities(prediction)
+
+        if (CarModel.isCoolray) {
+            LIGHT_CONTROL_PROPERTY = 356519684
+        }
 
         return when (params.action) {
             "set" -> setLight(true)
@@ -30,7 +36,7 @@ class LightControlHandler(private val vehiclePropertyHelper: VehiclePropertyHelp
         val supportedAreas = listOf(1, 2, 4, 16, 64)
 
         // For simplicity, we'll apply the action to all supported areas
-        var success = true
+        var success = false
         supportedAreas.forEach { areaId ->
             try {
                 vehiclePropertyHelper.setIntProperty(
@@ -38,10 +44,10 @@ class LightControlHandler(private val vehiclePropertyHelper: VehiclePropertyHelp
                     areaId,
                     if (turnOn) 1 else 0
                 )
+                success = true
                 Log.i(TAG, "Light control ${if (turnOn) "on" else "off"} for area $areaId")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to control light for area $areaId", e)
-                success = false
             }
         }
 

@@ -1,19 +1,25 @@
 package com.example.voiceapp3.media
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.ComponentName
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.net.Uri
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.media.session.MediaButtonReceiver
 import ecarx.xsf.mediacenter.MusicPlaybackInfo
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
+import java.security.MessageDigest
 
 
 object MetadataAdapter {
@@ -24,22 +30,21 @@ object MetadataAdapter {
             val state = controller.playbackState ?: return@apply
             val pkg = controller.packageName ?: "unknown"
 
-            appName = "YandexMusic"
+            appName = controller.packageName
             packageName = controller.packageName
             iconUri = getPackageUri(pkg, context)
-            playbackStatus = if (state.state == 3 || state.state == 6) 1 else 0
+            playbackStatus = if (state.state == 3 || state.state == 6 || state.state == 8) 1 else 0
 
             title = meta.getString(MediaMetadata.METADATA_KEY_TITLE).orEmpty()
             artist = meta.getString(MediaMetadata.METADATA_KEY_ARTIST).orEmpty()
             album = meta.getString(MediaMetadata.METADATA_KEY_ALBUM).orEmpty()
-            duration = meta.getLong(MediaMetadata.METADATA_KEY_DURATION).coerceAtLeast(0L)
+            duration = meta.getLong(MediaMetadata.METADATA_KEY_DURATION)
 
             if (duration == -1L) {
                 sourceType = 12 // radio
                 radioStationName = meta.getString(MediaMetadata.METADATA_KEY_DISPLAY_DESCRIPTION).orEmpty()
             } else {
                 sourceType = 6 // online music
-
             }
             meta.getString(MediaMetadata.METADATA_KEY_DISPLAY_DESCRIPTION)?.let {
                 if (it.endsWith(".lrc")) lyric = it.toUri()
@@ -56,24 +61,87 @@ object MetadataAdapter {
 
 
     private fun loadArtworkUri(meta: MediaMetadata, context: Context): Uri {
-        // 1. URI string
-        meta.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI)
-            ?: meta.getString(MediaMetadata.METADATA_KEY_ART_URI)
-                ?.let { return it.toUri() }
+        Log.i("ARTWORK", "Loading artwork")
 
-        // 2. Bitmap
-        val bmp = meta.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
-            ?: meta.getBitmap(MediaMetadata.METADATA_KEY_ART)
-            ?: return Uri.EMPTY
+        // Check URI fields in priority order
+        listOf(
+            MediaMetadata.METADATA_KEY_ALBUM_ART_URI,
+            MediaMetadata.METADATA_KEY_ART_URI
+        ).forEach { key ->
+            meta.getString(key)?.let { uriString ->
+                Log.i("ARTWORK", "Got URI from $key: $uriString")
+                return uriString.toUri()
+            }
+        }
 
-        return cacheBitmap(context, bmp)
+        // If no URI found, check bitmap fields
+        Log.i("ARTWORK", "No URI found, loading from bitmap")
+        listOf(
+            MediaMetadata.METADATA_KEY_ALBUM_ART,
+            MediaMetadata.METADATA_KEY_ART
+        ).forEach { key ->
+            meta.getBitmap(key)?.let { bitmap ->
+                return cacheArtworkBitmap(context, meta, bitmap)
+            }
+        }
+
+        return Uri.EMPTY
     }
 
-    private fun cacheBitmap(context: Context, bmp: Bitmap): Uri {
+    @SuppressLint("SetWorldReadable", "SetWorldWritable")
+    private fun cacheArtworkBitmap(context: Context, meta: MediaMetadata, bmp: Bitmap): Uri {
+        // Generate a unique but consistent filename based on media metadata
+        val filename = generateArtworkFilename(meta)
         val dir = File(context.externalCacheDir, "art").apply { mkdirs() }
-        val file = File(dir, "art_${System.currentTimeMillis()}.jpg")
-        FileOutputStream(file).use { bmp.compress(Bitmap.CompressFormat.JPEG, 85, it) }
+        val file = File(dir, filename)
+
+        // Only save if file doesn't exist or is different
+        if (!file.exists() || shouldOverwrite(file, bmp)) {
+            FileOutputStream(file).use { bmp.compress(Bitmap.CompressFormat.JPEG, 85, it) }
+
+            // Set file permissions (666 = RW-RW-RW-)
+            file.setReadable(true, false)
+            file.setWritable(true, false)
+            file.setExecutable(false, false)
+
+
+            Log.d("ARTWORK_CACHE", "Cached artwork: ${file.absolutePath}")
+        } else {
+            Log.d("ARTWORK_CACHE", "Using cached artwork: ${file.absolutePath}")
+        }
+
         return Uri.fromFile(file)
+    }
+
+    private fun generateArtworkFilename(meta: MediaMetadata): String {
+        // Create a hash-based filename using media metadata
+        val uniqueId = buildString {
+            append(meta.getString(MediaMetadata.METADATA_KEY_MEDIA_ID) ?: "")
+            append(meta.getString(MediaMetadata.METADATA_KEY_TITLE) ?: "")
+            append(meta.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: "")
+            append(meta.getString(MediaMetadata.METADATA_KEY_ALBUM) ?: "")
+        }
+
+        return if (uniqueId.isNotEmpty()) {
+            // Use MD5 hash for consistent filename
+            val hash = md5(uniqueId)
+            "art_$hash.jpg"
+        } else {
+            // Fallback to timestamp if no metadata
+            "art_${System.currentTimeMillis()}.jpg"
+        }
+    }
+
+    private fun shouldOverwrite(file: File, newBitmap: Bitmap): Boolean {
+        // Optional: Add logic to check if existing file is different
+        // For simplicity, we'll just overwrite if file exists
+        return true // or implement bitmap comparison logic
+    }
+
+    private fun md5(input: String): String {
+        val md = MessageDigest.getInstance("MD5")
+        val digest = md.digest(input.toByteArray())
+        return digest.joinToString("") { "%02x".format(it) }
     }
 
     fun getPackageUri(packageName: String, context: Context): String {
@@ -94,11 +162,11 @@ object MetadataAdapter {
 
     fun logAllMetadata(controller: MediaController) {
         val metadata = controller.metadata ?: run {
-            Log.i("MediaMetadata", "No metadata available")
+            Log.d("MediaMetadata", "No metadata available")
             return
         }
 
-        Log.i("MediaMetadata", "===== STANDARD METADATA =====")
+        Log.d("MediaMetadata", "===== STANDARD METADATA =====")
         logStringMetadata(metadata, MediaMetadata.METADATA_KEY_TITLE, "Title")
         logStringMetadata(metadata, MediaMetadata.METADATA_KEY_ARTIST, "Artist")
         logStringMetadata(metadata, MediaMetadata.METADATA_KEY_ALBUM, "Album")
@@ -124,13 +192,13 @@ object MetadataAdapter {
 
     private fun logStringMetadata(metadata: MediaMetadata, key: String, label: String) {
         if (metadata.containsKey(key)) {
-            Log.i("MediaMetadata", "$label: ${metadata.getString(key) ?: "null"}")
+            Log.d("MediaMetadata", "$label: ${metadata.getString(key) ?: "null"}")
         }
     }
 
     private fun logLongMetadata(metadata: MediaMetadata, key: String, label: String) {
         if (metadata.containsKey(key)) {
-            Log.i("MediaMetadata", "$label: ${metadata.getLong(key)}")
+            Log.d("MediaMetadata", "$label: ${metadata.getLong(key)}")
         }
     }
 }
