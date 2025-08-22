@@ -75,13 +75,13 @@ adb remount
 
 # установка
 adb shell mkdir -p /system/priv-app/VoiceAssistant
-adb push app-release.apk /system/priv-app/VoiceAssistant/
+adb push app-release.apk /system/priv-app/VoiceAssistant/app-release.apk
 
 # помещаем нативные библиотеки в систему
-adb push libonnxruntime4j_jni.so /system/lib64/
-adb push libonnxruntime.so /system/lib64/
-adb push libjnidispatch.so /system/lib64/
-adb push libvosk.so /system/lib64/
+adb push libonnxruntime4j_jni.so /system/lib64/libonnxruntime4j_jni.so
+adb push libonnxruntime.so /system/lib64/libonnxruntime.so
+adb push libjnidispatch.so /system/lib64/libjnidispatch.so
+adb push libvosk.so /system/lib64/libvosk.so
 
 # отключаем штатного китайского ассистента
 adb shell pm disable-user com.baidu.iov.dueros.activate
