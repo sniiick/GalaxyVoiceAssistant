@@ -16,8 +16,8 @@ ADB root и ADB remount позволяют Вам выполнить необр�
 2. Starship 7 1.7.4 RUS ENcars (root)
 3. Starship 7 1.7.4 stock (nonroot)
 4. Starship 7 1.8.0 stock (root)
-5. Boyue L stock (root)
-6. E5 stock (root)
+5. Boyue L patched (root) - для установки необходим патч фреймворка
+6. E5 patched (root) - для установки необходим патч фреймворка
 
 Если Все вышеописанное Вам понятно - переходите к инструкции и приятного использования.
 
