@@ -16,10 +16,11 @@ ADB root и ADB remount позволяют Вам выполнить необр�
 1. Starship 7 1.7.3 RUS ENcars (root)
 2. Starship 7 1.7.4 RUS ENcars (root)
 3. Starship 7 1.7.4 stock (nonroot)
-4. Starship 7 1.8.0 stock (root)
-5. Boyue L patched (root) - для установки необходим патч фреймворка
-6. E5 patched (root) - для установки необходим патч фреймворка
-7. Coolray L patched (root) - для установки необходим патч фреймворка
+4. Starship 7 1.0.0 stock (nonroot)
+5. Starship 7 1.8.0 stock (root)
+6. Boyue L patched (root) - для установки необходим патч фреймворка
+7. E5 patched (root) - для установки необходим патч фреймворка
+8. Coolray L patched (root) - для установки необходим патч фреймворка
 
 Если Все вышеописанное Вам понятно - переходите к инструкции и приятного использования.
 
@@ -49,8 +50,7 @@ ADB root и ADB remount позволяют Вам выполнить необр�
 ## Быстрая установка (рекомендуемый способ)
 1. Скачайте последнюю версию пакета с [Releases](https://github.com/sniiick/GalaxyVoiceAssistant/releases)
 2. Распакуйте архив `galaxy_voice_assistant_vX.X.zip` в удобное место
-3. **Для Windows**: Запустите `install_assistant.bat`
-4. **Для Linux/Mac**: Запустите `install_assistant.sh`
+3. Запустите `install_assistant.bat`
 5. Следуйте инструкциям в меню установщика
 
 Пакет уже содержит все необходимые файлы: скрипты установки, приложения, нативные библиотеки и scrcpy(adb) для Windows.
@@ -176,7 +176,6 @@ adb reboot
 В пакете содержатся два скрипта для автоматизации установки:
 
 - `install_assistant.bat` - для Windows
-- `install_assistant.sh` - для Linux/Mac
 
 Скрипты предоставляют интерактивное меню для:
 - Установки приложения (root/non-root)
