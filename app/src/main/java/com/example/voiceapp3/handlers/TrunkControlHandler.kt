@@ -5,11 +5,13 @@ import android.util.Log
 import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
+import com.example.voiceapp3.tools.CarModel
+import com.example.voiceapp3.tools.ModelEnum
 
 class TrunkControlHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
     private val TAG: String? = "TrunkControlHandler"
-    val TRUNK_PROPERTY_ID = 373295873
-    val TRUNK_AREA_ID = 536870912
+    var TRUNK_PROPERTY_ID = 373295873
+    var TRUNK_AREA_ID = 536870912
     val TRUNK_OPEN = 1
     val TRUNK_CLOSE = 0
 
@@ -17,6 +19,11 @@ class TrunkControlHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : In
 
     override fun handle(prediction: PredictionResult): Boolean {
         val params = extractCommonEntities(prediction)
+
+        if (CarModel.isCoolray) {
+            TRUNK_PROPERTY_ID = 554768640
+            TRUNK_AREA_ID = 0
+        }
 
         return when (params.action) {
             "set" -> openTrunk()

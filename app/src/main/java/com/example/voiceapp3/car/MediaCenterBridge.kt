@@ -50,9 +50,7 @@ class MediaCenterBridge(val context: Context, val service: VoiceAssistantService
     }
 
     fun isConnected(): Boolean {
-        Log.i(TAG, "isBound: $isBound")
-        Log.i(TAG, "svc: $svc")
-        Log.i(TAG, "alive: ${isServiceAlive()}")
+        Log.d(TAG, "isBound: $isBound svc: $svc alive: ${isServiceAlive()}")
         return isBound && svc != null && isServiceAlive()
     }
 
@@ -108,13 +106,13 @@ class MediaCenterBridge(val context: Context, val service: VoiceAssistantService
         isConnecting = false
     }
 
-    fun registerPlayer(pkg: String = "ru.yandex.music") {
+    fun registerPlayer(pkg: String) {
         val svc = svc ?: return
         try {
             val musicClient = MusicClient(context)
             token = svc.registerInMusic(pkg, musicClient)
             if (token != null) {
-                Log.i(TAG, "registered: $token")
+                Log.d(TAG, "registered: $token")
                 requestPlay()
             } else {
                 Log.w(TAG, "registration rejected (whitelist / signature)")
@@ -122,6 +120,10 @@ class MediaCenterBridge(val context: Context, val service: VoiceAssistantService
         } catch (e: RemoteException) {
             Log.w(TAG, "IPC failed", e)
         }
+    }
+
+    fun getCurrentFocusClient(): String? {
+        return token?.let { svc?.queryCurrentFocusClient(it) }
     }
 
     fun unregisterPlayer() {
@@ -141,7 +143,6 @@ class MediaCenterBridge(val context: Context, val service: VoiceAssistantService
 
             svc?.let { service ->
                 service.requestPlay(currentToken)
-                service.updateCurrentSourceType(currentToken, 6)
                 true
             } ?: run {
                 Log.w(TAG, "Service not available for requestPlay")
@@ -154,11 +155,12 @@ class MediaCenterBridge(val context: Context, val service: VoiceAssistantService
     }
 
     fun updateWithPlaybackInfo(playbackInfo: MusicPlaybackInfo) {
-        requestPlay()
         token?.let { token ->
+            requestPlay()
             try {
                 svc?.updateMusicPlaybackState(token, playbackInfo)
-                Log.i(TAG, "Updated playback info from Media3 session")
+                svc?.updateCurrentSourceType(token, playbackInfo.sourceType)
+                Log.d(TAG, "Updated playback info from Media3 session")
             } catch (e: RemoteException) {
                 Log.w(TAG, "Failed to update playback info", e)
             }
@@ -166,8 +168,8 @@ class MediaCenterBridge(val context: Context, val service: VoiceAssistantService
     }
 
     fun updateProgress(position: Long) {
-        requestPlay()
         token?.let { token ->
+            requestPlay()
             try {
                 svc?.updateCurrentProgress(token, position)
                 Log.d(TAG, "Updated progress: $position")

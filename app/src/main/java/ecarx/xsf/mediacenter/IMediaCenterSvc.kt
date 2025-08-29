@@ -4,8 +4,6 @@ import android.os.Binder
 import android.os.IBinder
 import android.os.IInterface
 import android.os.Parcel
-import android.os.RemoteException
-import android.util.Log
 
 interface IMediaCenterSvc : IInterface {
     fun getStateBinder(): IBinder
@@ -37,7 +35,9 @@ interface IMediaCenterSvc : IInterface {
                     mRemote.transact(TRANSACTION_getStateBinder, data, reply, 0)
                     reply.readException()
                     reply.readStrongBinder()
-                } finally { data.recycle(); reply.recycle() }
+                } finally {
+                    data.recycle(); reply.recycle()
+                }
             }
 
             override fun getMediaControlClientApi(): IBinder {
@@ -47,7 +47,9 @@ interface IMediaCenterSvc : IInterface {
                     mRemote.transact(TRANSACTION_getMediaControlClientApi, data, reply, 0)
                     reply.readException()
                     reply.readStrongBinder()
-                } finally { data.recycle(); reply.recycle() }
+                } finally {
+                    data.recycle(); reply.recycle()
+                }
             }
 
             override fun getMediaControllerApi(): IBinder {
@@ -57,7 +59,9 @@ interface IMediaCenterSvc : IInterface {
                     mRemote.transact(TRANSACTION_getMediaControllerApi, data, reply, 0)
                     reply.readException()
                     reply.readStrongBinder()
-                } finally { data.recycle(); reply.recycle() }
+                } finally {
+                    data.recycle(); reply.recycle()
+                }
             }
 
             override fun registerInMusic(pkg: String, client: IMusicClient): IMediaCenterClientToken? {
@@ -70,7 +74,9 @@ interface IMediaCenterSvc : IInterface {
                     reply.readException()
                     val t = reply.readStrongBinder()
                     if (t != null) object : IMediaCenterClientToken { override fun asBinder() = t } else null
-                } finally { data.recycle(); reply.recycle() }
+                } finally {
+                    data.recycle(); reply.recycle()
+                }
             }
 
             override fun updateMusicPlaybackState(token: IMediaCenterClientToken, info: IMusicPlaybackInfo): Boolean {
@@ -81,13 +87,10 @@ interface IMediaCenterSvc : IInterface {
                     data.writeStrongBinder(info.asBinder())
                     mRemote.transact(TRANSACTION_updateMusicPlaybackState, data, reply, 0)
                     reply.readException()
-                    val result = reply.readInt() != 0
-                    Log.i("IMediaCenterSvc", "updateMusicPlaybackState result: $result")
-                    result
-                } catch (e: RemoteException) {
-                    Log.w("IMediaCenterSvc", "Failed to update music playback state", e)
-                    false
-                } finally { data.recycle(); reply.recycle() }
+                    reply.readInt() != 0
+                } finally {
+                    data.recycle(); reply.recycle()
+                }
             }
 
             override fun requestPlay(token: IMediaCenterClientToken): Boolean {

@@ -10,33 +10,40 @@ class ExteriorLightControlHandler(private val vehiclePropertyHelper: VehicleProp
     private val TAG: String = "ExteriorLightControlHandler"
 
     // Property ID for exterior lights
-    private val EXTERIOR_LIGHT_CONTROL_PROPERTY = 557871126
-    private val EXTERIOR_LIGHT_AREA_ID = 0
+    companion object {
+        private val EXTERIOR_LIGHT_CONTROL_PROPERTY = 557871126
+        private val EXTERIOR_FOG_CONTROL_PROPERTY = 289410578
+        private val EXTERIOR_LIGHT_AREA_ID = 0
+    }
 
     // Light types and their corresponding values
     private enum class ExteriorLightType(
+        val propertyId: Int,
         val russianName: String,
         val regex: Regex,
         val setValue: Int,
         val unsetValue: Int
     ) {
         HEADLIGHTS(
+            EXTERIOR_LIGHT_CONTROL_PROPERTY,
             "фары",
             Regex("фар[ыae]|свет|ближний", RegexOption.IGNORE_CASE),
             3,
             0
         ),
         PARKING(
+            EXTERIOR_LIGHT_CONTROL_PROPERTY,
             "габариты",
             Regex("габарит", RegexOption.IGNORE_CASE),
             1,
-            3
+            0
         ),
         FOG_LIGHTS(
+            EXTERIOR_FOG_CONTROL_PROPERTY,
             "туманки",
             Regex("туман", RegexOption.IGNORE_CASE),
-            2,
-            3
+            1,
+            0
         );
 
         companion object {
@@ -67,11 +74,10 @@ class ExteriorLightControlHandler(private val vehiclePropertyHelper: VehicleProp
     private fun setExteriorLight(lightType: ExteriorLightType): Boolean {
         return try {
             vehiclePropertyHelper.setIntProperty(
-                EXTERIOR_LIGHT_CONTROL_PROPERTY,
+                lightType.propertyId,
                 EXTERIOR_LIGHT_AREA_ID,
                 lightType.setValue
             )
-            Log.i(TAG, "Exterior light set to ${lightType.russianName} (value: ${lightType.setValue})")
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to set exterior light to ${lightType.russianName}", e)
@@ -82,11 +88,10 @@ class ExteriorLightControlHandler(private val vehiclePropertyHelper: VehicleProp
     private fun unsetExteriorLight(lightType: ExteriorLightType): Boolean {
         return try {
             vehiclePropertyHelper.setIntProperty(
-                EXTERIOR_LIGHT_CONTROL_PROPERTY,
+                lightType.propertyId,
                 EXTERIOR_LIGHT_AREA_ID,
                 lightType.unsetValue
             )
-            Log.i(TAG, "Exterior light unset for ${lightType.russianName}, set to ${if (lightType.unsetValue == 0) "off" else "фары (auto)"}")
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to unset exterior light for ${lightType.russianName}", e)

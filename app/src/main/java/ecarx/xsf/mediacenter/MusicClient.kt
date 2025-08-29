@@ -24,7 +24,7 @@ class MusicClient(private val context: Context) : IMusicClient {
 
     private val binder = object : Binder() {
         override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
-            Log.i("LiveMusicClient", "onTransact CALLED: $code, $data, $reply, $flags")
+            Log.d("LiveMusicClient", "onTransact CALLED: $code, $data, $reply, $flags")
             when (code) {
                 INTERFACE_TRANSACTION -> {
                     reply?.writeString("ecarx.xsf.mediacenter.IMusicClient")
@@ -116,7 +116,7 @@ class MusicClient(private val context: Context) : IMusicClient {
         }
     }
 
-    private fun sendMediaKey(keyCode: Int, press: Boolean) {
+    fun sendMediaKey(keyCode: Int, press: Boolean) {
         val audioManager = context.getSystemService(AUDIO_SERVICE) as AudioManager
         val action = if (press) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP
         try {
@@ -130,7 +130,7 @@ class MusicClient(private val context: Context) : IMusicClient {
     override fun asBinder(): IBinder = binder
 
     override fun getPlaybackInfo(): IMusicPlaybackInfo {
-        Log.i("iMusicClient", "getPlaybackInfo CALLED!")
+        Log.d("iMusicClient", "getPlaybackInfo CALLED!")
         return info
     }
 

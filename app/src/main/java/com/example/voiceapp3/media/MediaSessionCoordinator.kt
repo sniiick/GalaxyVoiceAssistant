@@ -1,139 +1,275 @@
 package com.example.voiceapp3.media
 
+import android.content.ContentUris
 import android.content.Context
+import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.os.Environment
 import android.os.Handler
-import android.os.Looper
+import android.os.SystemClock
+import android.provider.MediaStore
 import android.util.Log
 import com.example.voiceapp3.car.MediaCenterBridge
+import ecarx.xsf.mediacenter.MusicPlaybackInfo
 import kotlinx.coroutines.*
 import java.io.File
 import java.util.concurrent.TimeUnit
-
+import kotlin.math.abs
 
 class MediaSessionCoordinator(
     var context: Context,
     private val gateway: MediaCenterBridge
 ) {
-    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var currentController: MediaController? = null
     private var callbackHandler: MediaControllerCallbackHandler? = null
     private var progressJob: Job? = null
+    private var lastPosition: Long = 0
+    private var positionUpdateTime: Long = 0
 
-    private companion object {
-        const val DEBOUNCE_DELAY_MS = 300L
-    }
+    private var lastNativeSessionDetectionTime: Long = 0
+    private var nativeSessionCooldownPeriod: Long = 5000
+    private var lastNativeSessionPackage: String? = null
 
-    private var lastControllerChangeTime = 0L
-    private val observer = MediaSessionObserver(context) { controller ->
-        onNewController(controller)
-    }
+    private var currentSessionPackage: String? = null
+    private var pollingJob: Job? = null
+    private val nativePackages = setOf(
+        "com.android.bluetooth",
+        "com.ecarx.mediacenter",
+        "com.flyme"
+    )
 
     fun start() {
-        observer.start()
-        checkCurrentSessions()
-        Log.i("MediaCoordinator", "Started listening")
+        startPolling()
+        Log.i("MediaCoordinator", "Started polling media sessions")
     }
 
-    private fun isPlayingState(state: Int): Boolean {
-        return state == PlaybackState.STATE_PLAYING ||
-                state == PlaybackState.STATE_BUFFERING
-    }
-
-    private fun getSessionPriority(controller: MediaController): Int {
-        val state = controller.playbackState?.state ?: PlaybackState.STATE_NONE
-        return when {
-            isPlayingState(state) -> 0  // Highest priority - currently playing
-            state != PlaybackState.STATE_NONE -> 1  // Active but not playing
-            else -> 2  // Inactive sessions
+    private fun startPolling() {
+        pollingJob?.cancel()
+        pollingJob = scope.launch {
+            while (isActive) {
+                pollMediaSessions()
+                delay(1000) // Poll every second
+            }
         }
     }
 
-    private fun checkCurrentSessions() {
-        val now = System.currentTimeMillis()
-        if (now - lastControllerChangeTime < DEBOUNCE_DELAY_MS) {
-            return
-        }
-
+    private fun pollMediaSessions() {
         val mediaSessionManager = context.getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
         val activeSessions = mediaSessionManager.getActiveSessions(null)
 
-        // Filter out current session if we're not starting
-        val filteredSessions = activeSessions.filterNot { it.packageName == currentController?.packageName }
+        if (activeSessions.isEmpty()) {
+            cleanupCurrentController()
+            return
+        }
 
-        if (filteredSessions.isEmpty()) {
-            if (currentController != null) {
-                onNewController(null)
+        // Check if we're in a cooldown period for native session detection
+        val currentTime = SystemClock.elapsedRealtime()
+        val inCooldown = currentTime - lastNativeSessionDetectionTime < nativeSessionCooldownPeriod
+
+        if (inCooldown && lastNativeSessionPackage == "com.android.bluetooth") {
+            Log.d("MediaCoordinator", "In cooldown period for Bluetooth detection, skipping native check")
+            // Continue with non-native session logic during cooldown
+            handleNonNativeSessions(activeSessions)
+            return
+        }
+
+        // Find ALL playing sessions (both native and non-native)
+        val playingSessions = activeSessions.filter { isActuallyPlaying(it) }
+
+        // Check if there are any NATIVE playing sessions
+        val nativePlayingSession = playingSessions.firstOrNull { isNativeSession(it) }
+
+        if (nativePlayingSession != null) {
+            // Native session detected - enter cooldown period
+            lastNativeSessionDetectionTime = currentTime
+            lastNativeSessionPackage = nativePlayingSession.packageName
+
+            Log.i("MediaCoordinator", "Native session ${nativePlayingSession.packageName} detected, entering cooldown period")
+            cleanupCurrentController()
+            return
+        }
+
+        // No native sessions playing, handle non-native sessions
+        handleNonNativeSessions(activeSessions)
+    }
+
+    private fun handleNonNativeSessions(activeSessions: List<MediaController>) {
+        val playingSessions = activeSessions.filter { isActuallyPlaying(it) && !isNativeSession(it) }
+        val nonNativePlayingSession = playingSessions.firstOrNull()
+
+        if (nonNativePlayingSession != null) {
+            // Non-native session is playing
+            if (nonNativePlayingSession.packageName != currentController?.packageName) {
+                Log.i("MediaCoordinator", "Switching to playing session: ${nonNativePlayingSession.packageName}")
+                switchToController(nonNativePlayingSession)
+            } else {
+                // Same non-native session is still playing
+                updateCurrentSessionState()
             }
             return
         }
 
-        // Sort sessions by priority
-        val sortedSessions = filteredSessions.sortedBy { getSessionPriority(it) }
-
-        // Only notify if the top session is different from current
-        val newTopSession = sortedSessions.firstOrNull()
-        if (newTopSession?.packageName != currentController?.packageName) {
-            lastControllerChangeTime = now
-            observer.onActiveSessionsChanged(sortedSessions.toMutableList())
+        // No playing sessions found at all
+        val currentSession = currentController
+        if (currentSession != null && isSessionActive(currentSession)) {
+            // Current session is active but paused - keep it, just update playback status
+            Log.d("MediaCoordinator", "Current session ${currentSession.packageName} is paused but active")
+            progressJob?.cancel()
+        } else {
+            // No valid sessions at all, cleanup
+            Log.d("MediaCoordinator", "No valid sessions found, cleaning up")
+            gateway.updateWithPlaybackInfo(MusicPlaybackInfo().apply { playbackStatus = 2 })
+            cleanupCurrentController()
         }
     }
 
-    fun stop() {
-        observer.stop()
-        progressJob?.cancel()
-        scope.cancel()
-        Log.d("MediaCoordinator", "Stopped listening")
+    private fun updateCurrentSessionState() {
+        val current = currentController ?: return
+        val playbackState = current.playbackState ?: return
+
+        if (isPlayingState(playbackState.state)) {
+            // Session is playing, ensure progress updates are running
+            if (progressJob?.isActive != true) {
+                startProgressLoop(current)
+            }
+
+            // Update playback status to playing (in case it was paused before)
+            val info = MetadataAdapter.toPlaybackInfo(current, context)
+            gateway.updateWithPlaybackInfo(info.apply {
+                playbackStatus = 1 // Playing
+            })
+        } else if (isSessionActive(current)) {
+            // Session is paused but still active
+            progressJob?.cancel()
+        } else {
+            // Session is no longer active, cleanup
+            Log.i("MediaCoordinator", "Current session ${current.packageName} is no longer active")
+            cleanupCurrentController()
+        }
     }
 
-    private fun onNewController(controller: MediaController?) {
-        Log.i("MediaCoordinator", "onNewController called with ${controller?.packageName}")
-        Log.i("MediaCoordinator", "Current controller: ${currentController?.packageName}")
+    private fun isNativeSession(controller: MediaController): Boolean {
+        return nativePackages.any { native ->
+            controller.packageName?.startsWith(native) == true
+        }
+    }
 
-        // Special case: If we're getting a null controller but have a valid current one,
-        // this might be a session death - we should keep our current controller
-        if (controller == null && currentController != null) {
-            Log.i("MediaCoordinator", "Ignoring null controller while we have active session")
-            return
+    private fun isPlayingState(state: Int): Boolean {
+        return state == PlaybackState.STATE_PLAYING || state == PlaybackState.STATE_BUFFERING
+    }
+
+    private fun isActuallyPlaying(session: MediaController): Boolean {
+        val playbackState = session.playbackState ?: return false
+        val metadata = session.metadata ?: return false
+
+        // Must be in playing state (3=playing, 6=buffering)
+        if (!isPlayingState(playbackState.state)) {
+            return false
         }
 
-        // Special case: If the new controller is invalid (no metadata/playback state)
-        // and we have a valid current controller, ignore it
-        if (controller != null && currentController != null &&
-            (controller.metadata == null || controller.playbackState == null)) {
-            Log.i("MediaCoordinator", "Ignoring invalid controller while we have active session")
-            return
+        // Must have valid metadata (title or artist)
+        val hasValidMetadata = metadata.getString(MediaMetadata.METADATA_KEY_TITLE)?.isNotEmpty() == true ||
+                metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)?.isNotEmpty() == true
+
+        if (!hasValidMetadata) {
+            return false
         }
 
-        // Skip if this is the same controller we're already handling
-        if (controller?.packageName == currentController?.packageName) {
-            checkCurrentSessions()
-            return
+        // For native sessions (especially Bluetooth), be more strict about position changes
+        if (isNativeSession(session)) {
+            return isNativeSessionActuallyPlaying(session, playbackState)
         }
 
-        Log.i("MediaCoordinator", "Proceeding with controller change to ${controller?.packageName}")
+        // For non-native sessions, trust the playing state
+        return true
+    }
 
+    private fun isNativeSessionActuallyPlaying(session: MediaController, playbackState: PlaybackState): Boolean {
+        // Only check Bluetooth sessions, be more permissive with other native sessions
+        if (session.packageName != "com.android.bluetooth") {
+            val currentTime = SystemClock.elapsedRealtime()
+            val lastUpdateTime = playbackState.lastPositionUpdateTime
+            val isRecentlyUpdated = currentTime - lastUpdateTime < 1500
+            val hasNonZeroPosition = playbackState.position > 0
+            return isRecentlyUpdated && hasNonZeroPosition
+        }
+
+        // For Bluetooth, be very conservative
+        val currentPosition = playbackState.position
+        val currentTime = SystemClock.elapsedRealtime()
+        val lastUpdateTime = playbackState.lastPositionUpdateTime
+
+        Log.d("MediaControllerCallback", "Bluetooth check: pos=$currentPosition, lastUpdate=$lastUpdateTime, current=$currentTime, diff=${currentTime - lastUpdateTime}")
+
+        // Bluetooth must show significant position changes to be considered playing
+        if (session.packageName == currentSessionPackage) {
+            val positionDiff = abs(currentPosition - lastPosition)
+
+            // Require at least 500ms position change to consider it real playback
+            if (positionDiff < 500) {
+                Log.d("MediaControllerCallback", "Bluetooth position change too small ($positionDiff ms), not real playback")
+                return false
+            } else {
+                lastPosition = currentPosition
+                positionUpdateTime = currentTime
+                Log.d("MediaControllerCallback", "Bluetooth significant position change ($positionDiff ms), considering playing")
+                return true
+            }
+        } else {
+            // New session, reset tracking but be skeptical
+            lastPosition = currentPosition
+            positionUpdateTime = currentTime
+            currentSessionPackage = session.packageName
+        }
+
+        // Additional check: must have very recent updates for Bluetooth
+        val timeSinceUpdate = currentTime - lastUpdateTime
+        if (timeSinceUpdate > 2000) {
+            Log.d("MediaControllerCallback", "Bluetooth no recent updates for $timeSinceUpdate ms")
+            return false
+        }
+
+        // If we're still not sure, be conservative and don't trust Bluetooth
+        Log.d("MediaControllerCallback", "Bluetooth detection uncertain, not trusting it")
+        return false
+    }
+
+    private fun isSessionActive(session: MediaController): Boolean {
+        val playbackState = session.playbackState ?: return false
+        val metadata = session.metadata ?: return false
+
+        // Session must have valid metadata (title or artist)
+        val hasValidMetadata = metadata.getString(MediaMetadata.METADATA_KEY_TITLE)?.isNotEmpty() == true ||
+                metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)?.isNotEmpty() == true
+
+        if (!hasValidMetadata) {
+            return false
+        }
+
+        // Session is active if it's in any state except stopped, error, or none
+        val isActiveState = playbackState.state != PlaybackState.STATE_STOPPED &&
+                playbackState.state != PlaybackState.STATE_ERROR &&
+                playbackState.state != PlaybackState.STATE_NONE
+
+        // Also check if the session package is still in the active sessions list
+        val mediaSessionManager = context.getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
+        val activeSessionPackages = mediaSessionManager.getActiveSessions(null).map { it.packageName }
+
+        return isActiveState && session.packageName in activeSessionPackages
+    }
+
+    private fun switchToController(controller: MediaController) {
         cleanupCurrentController()
-        progressJob?.cancel()
-        gateway.unregisterPlayer()
-
-        if (controller == null) {
-            return
-        }
 
         try {
-            // Additional validation before switching
-            if (controller.metadata == null && controller.playbackState == null) {
-                Log.w("MediaCoordinator", "Rejecting controller with no metadata or playback state")
-                return
+            val handler = MediaControllerCallbackHandler(controller, gateway) {
+                // Session destroyed - will be handled in next poll
             }
 
-            val handler = MediaControllerCallbackHandler(controller, gateway, ::cleanupCurrentController)
-            controller.registerCallback(handler, Handler(Looper.getMainLooper()))
-
+            controller.registerCallback(handler, Handler(context.mainLooper))
             currentController = controller
             callbackHandler = handler
 
@@ -141,11 +277,9 @@ class MediaSessionCoordinator(
             gateway.registerPlayer(controller.packageName)
             gateway.updateWithPlaybackInfo(info.apply { playbackStatus = 1 })
 
-            if (isPlayingState(controller.playbackState?.state ?: PlaybackState.STATE_NONE)) {
-                startProgressLoop(controller)
-            }
+            startProgressLoop(controller)
         } catch (e: Exception) {
-            Log.e("MediaCoordinator", "Error handling new controller", e)
+            Log.e("MediaCoordinator", "Error switching to controller", e)
             cleanupCurrentController()
         }
     }
@@ -156,19 +290,33 @@ class MediaSessionCoordinator(
         }
         currentController = null
         callbackHandler = null
+        progressJob?.cancel()
+        gateway.unregisterPlayer()
     }
 
     private fun startProgressLoop(controller: MediaController) {
+        progressJob?.cancel()
         progressJob = scope.launch {
-            while (isActive && controller.playbackState?.state == PlaybackState.STATE_PLAYING) {
-                gateway.updateProgress(controller.playbackState?.position ?: return@launch)
-                delay(100)
+            while (isActive) {
+                val playbackState = controller.playbackState
+                if (playbackState != null && isPlayingState(playbackState.state)) {
+                    gateway.updateProgress(playbackState.position)
+                }
+                delay(100) // Update progress every 100ms
             }
         }
     }
 
+    fun stop() {
+        pollingJob?.cancel()
+        progressJob?.cancel()
+        scope.cancel()
+        cleanupCurrentController()
+        Log.d("MediaCoordinator", "Stopped polling")
+    }
+
     fun cleanExpiredCache() {
-        val ttl = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
+        val ttl = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1)
         listOfNotNull(
             context.externalCacheDir,
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)

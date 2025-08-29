@@ -21,10 +21,12 @@ class MediaControllerCallbackHandler(
     }
 
     override fun onPlaybackStateChanged(state: PlaybackState?) {
-        Log.i("MediaControllerCallback", "PlaybackState changed: ${state?.state}")
+        Log.d("MediaControllerCallback", "PlaybackState changed: ${state?.state}")
         state?.let {
             val newIsPlaying = when (state.state) {
-                PlaybackState.STATE_PLAYING -> true
+                PlaybackState.STATE_PLAYING,
+                PlaybackState.STATE_BUFFERING,
+                PlaybackState.STATE_CONNECTING -> true
                 PlaybackState.STATE_PAUSED,
                 PlaybackState.STATE_STOPPED,
                 PlaybackState.STATE_ERROR -> false

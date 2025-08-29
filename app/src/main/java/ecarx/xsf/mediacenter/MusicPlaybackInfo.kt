@@ -162,7 +162,7 @@ class MusicPlaybackInfo() : IMusicPlaybackInfo.Stub() {
                 return super.onTransact(code, data, reply, flags)
             }
             else -> {
-                Log.i("LiveMusicPlaybackInfo", "onTransact NOT HANDLED CALLED: $code, $data, $reply, $flags")
+                Log.d("LiveMusicPlaybackInfo", "onTransact NOT HANDLED CALLED: $code, $data, $reply, $flags")
                 return super.onTransact(code, data, reply, flags)
             }
         }

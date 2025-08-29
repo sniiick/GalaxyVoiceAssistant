@@ -1,21 +1,33 @@
 package com.example.voiceapp3.handlers
 
+import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.media.session.MediaController
+import android.media.session.MediaSessionManager
+import android.media.session.PlaybackState
 import android.provider.Settings
 import android.util.Log
+import android.view.KeyEvent
 import com.example.voiceapp3.CommandParams
 import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.tools.CarModel
-import com.example.voiceapp3.tools.ModelEnum
+import ecarx.xsf.mediacenter.MusicClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 class OpenAppHandler(private val context: Context) : IntentHandler {
     private val TAG: String? = "OpenAppHandler"
-    private val musicIntent: Intent = Intent().apply {
+    private val yaMusicIntent: Intent = Intent().apply {
         setClassName(
             "ru.yandex.music",
             "ru.yandex.music.main.MainScreenActivity")
@@ -27,8 +39,7 @@ class OpenAppHandler(private val context: Context) : IntentHandler {
     }
 
     private fun getEngineerIntent() : Intent {
-        if (CarModel.getCarModel() == ModelEnum.E5) {
-            Log.i(TAG, "Not supported for E5 model, returning empty intent.")
+        if (CarModel.isE5) {
             return Intent()
         }
 
@@ -38,12 +49,10 @@ class OpenAppHandler(private val context: Context) : IntentHandler {
                 "persist.switch.usbmode",
                 "true"
             )
-            Log.i(TAG, "Activated EngineerApp")
         } catch (e: SecurityException) {
-            Log.i(TAG, "Error setting usbmode to true: ${e.toString()}")
+            Log.e(TAG, "Error setting usbmode to true: ${e.toString()}")
         }
 
-        Log.i(TAG, "Opening EngineerApp")
         return Intent().apply {
             component = ComponentName(
                 "com.geely.engineermode",
@@ -54,20 +63,18 @@ class OpenAppHandler(private val context: Context) : IntentHandler {
 
     private val customAppMap: Map<String, Intent> = mapOf(
         "инженер" to getEngineerIntent(),
-        "музыка" to musicIntent,
-        "музыку" to musicIntent,
+        "музык" to yaMusicIntent,
         "параметры" to Intent(Settings.ACTION_SETTINGS),
-        "карта" to naviIntent,
-        "маршрут" to naviIntent,
-        "нави" to naviIntent,
-        "навигатор" to naviIntent,
-        "навигация" to naviIntent,
+        "карта" to naviIntent, "карту" to naviIntent, "карты" to naviIntent, "маршрут" to naviIntent,
+        "нави" to naviIntent, "навигатор" to naviIntent, "навигация" to naviIntent,
     )
 
     override fun canHandle(intent: String): Boolean = intent == "open_app"
 
     override fun handle(prediction: PredictionResult): Boolean {
         val commandText = prediction.normalizedText.lowercase()
+        val params = extractCommonEntities(prediction)
+
 
         // Find first matching intent
         customAppMap.entries.firstOrNull { (key, _) ->
@@ -80,7 +87,33 @@ class OpenAppHandler(private val context: Context) : IntentHandler {
                 intent.apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 }
-                context.startActivity(intent)
+
+                if (params.action == "unset") {
+                    return false
+                } else {
+                    context.startActivity(intent)
+                }
+
+                // music special handle to start/stop playing
+                if (intent.component?.packageName == "ru.yandex.music") {
+                    val musicClient = MusicClient(context)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val mediaController = waitForMediaSessionWithTimeout(10000L)
+                        Thread.sleep(500)
+                        Log.i(TAG, "State: ${mediaController?.playbackState?.state}")
+                        if (mediaController != null) {
+                            when (mediaController.playbackState?.state) {
+                                PlaybackState.STATE_STOPPED, PlaybackState.STATE_PAUSED -> {
+                                    musicClient.sendMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, true)
+                                    musicClient.sendMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, false)
+                                }
+                                else -> {
+                                }
+                            }
+                        }
+                    }
+                }
+
                 true
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to launch activity: ${e.message}")
@@ -92,6 +125,7 @@ class OpenAppHandler(private val context: Context) : IntentHandler {
         return launchAppBySystemSearch(commandText)
     }
 
+    @SuppressLint("QueryPermissionsNeeded")
     private fun launchAppBySystemSearch(text: String): Boolean {
         val pm = context.packageManager
         val mainIntent = Intent(Intent.ACTION_MAIN).apply {
@@ -188,4 +222,29 @@ class OpenAppHandler(private val context: Context) : IntentHandler {
     override fun extractCommonEntities(prediction: PredictionResult): CommandParams {
         return CommandParams(null, null, null)
     }
+
+    private suspend fun waitForMediaSessionWithTimeout(timeoutMs: Long): MediaController? {
+        return withTimeoutOrNull(timeoutMs) {
+            val mediaSessionManager = context.getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
+            var mediaController: MediaController? = null
+
+            while (isActive && mediaController == null) {
+                // Get active sessions
+                val activeSessions = mediaSessionManager.getActiveSessions(null)
+
+                // Look for Yandex Music session
+                mediaController = activeSessions.firstOrNull { session ->
+                    session.packageName == "ru.yandex.music"
+                }
+
+                // If not found, wait a bit before checking again
+                if (mediaController == null) {
+                    delay(200) // Check every 200ms
+                }
+            }
+
+            mediaController
+        }
+    }
+
 }

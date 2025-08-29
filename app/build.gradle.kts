@@ -13,8 +13,8 @@ android {
         applicationId = "com.example.voiceapp3"
         minSdk = 28
         targetSdk = 32
-        versionCode = 75
-        versionName = "7.0.2024_1203_1849-p145"
+        versionCode = 76
+        versionName = "7.1.2024_1203_1849-p145"
     }
 
     buildFeatures {
@@ -48,4 +48,5 @@ dependencies {
     implementation("com.microsoft.onnxruntime:onnxruntime-android:latest.release")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation(files("libs/sherpa-onnx-v1.12.9-java8.jar"))
 }

@@ -23,8 +23,6 @@ class AIDLService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.i(TAG, "Service started with intent: ${intent?.action}")
-
         val serviceIntent = Intent(applicationContext, VoiceAssistantService::class.java)
         startForegroundService(serviceIntent)
         return START_STICKY

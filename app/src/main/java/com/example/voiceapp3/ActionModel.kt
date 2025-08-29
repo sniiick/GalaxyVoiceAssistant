@@ -40,13 +40,12 @@ class ActionModel(context: Context, modelPath: String) {
                 context.assets.open("model-cmd/model.onnx").use { input ->
                     FileOutputStream(modelFile).use { output ->
                         input.copyTo(output)
-                        Log.i(TAG, "Model copied to ${modelFile.absolutePath}")
                     }
                 }
             }
 
             ortSession = ortEnv.createSession(modelFile.absolutePath).apply {
-                Log.i(TAG, "Model loaded successfully. Input shapes: $inputInfo")
+                Log.i(TAG, "Model loaded successfully")
             }
         } catch (e: Exception) {
             Log.e(TAG, """
@@ -117,17 +116,20 @@ class ActionModel(context: Context, modelPath: String) {
     private fun detectIntentByKeywords(text: String): String? {
         return when {
             Regex("град(?:ус|усе|уса|усы)|темпер|тепл|жар|холод|прохлад").containsMatchIn(text) -> "change_ac_temp"
-            Regex("вентилятор|обдув").containsMatchIn(text) -> "change_fan_speed"
+            Regex("вентилятор|обдув|дуть|дуй").containsMatchIn(text) -> "change_fan_speed"
             Regex("вентиляци[яю]").containsMatchIn(text) -> "seat_ventilation"
-            Regex("подогрев").containsMatchIn(text) -> "seat_heat"
+            Regex("подогрев|обогрев|греть|грей").containsMatchIn(text) -> "seat_heat"
             Regex("массаж").containsMatchIn(text) -> "seat_massage"
+            Regex("заряд|двигатель|мотор|движок").containsMatchIn(text) -> "fuel_charge"
             Regex("багажник|багаж").containsMatchIn(text) -> "trunk_control"
-            Regex("стекл|шторк|люк").containsMatchIn(text) -> "window_control"
+            Regex("яркость|экран|монитор|дисплей|планшет").containsMatchIn(text) -> "screen_brightness"
+            Regex("стекл|шторк|люк|панорам[ау]").containsMatchIn(text) -> "window_control"
             Regex("бензин|заправ(?:к.*|ля.*|и.*)|бензобак").containsMatchIn(text) -> "fuel_door_open"
-            Regex("кошка|нахуй").containsMatchIn(text) -> "play_sound"
             Regex("скажи").containsMatchIn(text) -> "play_text"
             Regex("ближний|ближний свет|фар([ыау])|туман|габарит").containsMatchIn(text) -> "exterior_light_control"
             Regex("свет").containsMatchIn(text) -> "light_control"
+            Regex("режим|режим вождения|вождения|гибрид|электр|спорт").containsMatchIn(text) -> "drive_mode"
+            Regex("кошка|нахуй").containsMatchIn(text) -> "play_sound"
             else -> null
         }
     }

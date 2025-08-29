@@ -6,9 +6,12 @@ import com.example.voiceapp3.car.VehiclePropertyHelper
 import com.example.voiceapp3.handlers.AcControlHandler
 import com.example.voiceapp3.handlers.ChangeAcTempHandler
 import com.example.voiceapp3.handlers.ChangeFanSpeedHandler
+import com.example.voiceapp3.handlers.ChangeScreenBrightnessHandler
+import com.example.voiceapp3.handlers.DriveModeHandler
 import com.example.voiceapp3.handlers.ExteriorLightControlHandler
 import com.example.voiceapp3.handlers.ExternalSoundHandler
 import com.example.voiceapp3.handlers.ExternalSpeechHandler
+import com.example.voiceapp3.handlers.FuelCharingHandler
 import com.example.voiceapp3.handlers.FuelDoorHandler
 import com.example.voiceapp3.handlers.LightControlHandler
 import com.example.voiceapp3.handlers.OpenAppHandler
@@ -55,7 +58,10 @@ class IntentHandlerRegistry(vehiclePropertyHelper: VehiclePropertyHelper, carAud
         ExternalSoundHandler(carAudioPlayer),
         ExternalSpeechHandler(carAudioPlayer),
         LightControlHandler(vehiclePropertyHelper),
-        ExteriorLightControlHandler(vehiclePropertyHelper)
+        ExteriorLightControlHandler(vehiclePropertyHelper),
+        ChangeScreenBrightnessHandler(vehiclePropertyHelper),
+        FuelCharingHandler(vehiclePropertyHelper),
+        DriveModeHandler(vehiclePropertyHelper),
     )
 
     fun register(handler: IntentHandler) {
