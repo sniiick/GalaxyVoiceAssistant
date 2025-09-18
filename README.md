@@ -18,9 +18,10 @@ ADB root и ADB remount позволяют Вам выполнить необр�
 3. Starship 7 1.7.4 stock (nonroot)
 4. Starship 7 1.0.0 stock (nonroot)
 5. Starship 7 1.8.0 stock (root)
-6. Boyue L patched (root) - для установки необходим патч фреймворка
-7. E5 patched (root) - для установки необходим патч фреймворка
-8. Coolray L patched (root) - для установки необходим патч фреймворка
+6. Starship 7 1.8.1 stock (root)
+7. Boyue L patched (root) - для установки необходим патч фреймворка
+8. E5 patched (root) - для установки необходим патч фреймворка
+9. Coolray L patched (root) - для установки необходим патч фреймворка
 
 Если Все вышеописанное Вам понятно - переходите к инструкции и приятного использования.
 
