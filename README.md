@@ -195,5 +195,5 @@ https://donate.stream/donate_68a45fabdb2f8
 
 Обратная связь, конструктивная критика и предложения приветствуются, но не обязательно будут выполнены. Спасибо.
 
-### Development by @sniiick
+### Development by (@sniiick)[https://t.me/sniiiick]
 ### Powered by DeepSeek production
