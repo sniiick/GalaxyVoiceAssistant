@@ -29,7 +29,7 @@ class SeatClimateHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
         val isVentilation = prediction.intent == "seat_ventilation"
         val params = extractCommonEntities(prediction)
 
-        if (prediction.normalizedText.contains(Regex("зеркал|стекл|стекол|стёкл|стёкол"))) {
+        if (prediction.normalizedText.contains(Regex("mirror(s)?|glass(es)?|window(s)?"))) {
             // not about seats, about windows/mirrors
             val acControlHandler = AcControlHandler(vehiclePropertyHelper)
             return when (params.action) {
@@ -51,7 +51,7 @@ class SeatClimateHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
     }
 
     private fun determineTargetSeats(prediction: PredictionResult): Set<Int> {
-        val pluralRegex = Regex("кресел|сидений|сидушек|диванов", RegexOption.IGNORE_CASE)
+        val pluralRegex = Regex("seats|chairs", RegexOption.IGNORE_CASE)
         if (pluralRegex.containsMatchIn(prediction.normalizedText)) {
             return setOf(PILOT_SEAT, PASSENGER_SEAT)
         }

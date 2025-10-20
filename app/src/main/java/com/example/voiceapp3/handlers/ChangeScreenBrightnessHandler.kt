@@ -31,7 +31,7 @@ class ChangeScreenBrightnessHandler(val vehiclePropertyHelper: VehiclePropertyHe
             BRIGHTNESS_PROPERTY_ID = 687997952
         }
 
-        if (prediction.normalizedText.contains("авто")) {
+        if (prediction.normalizedText.contains("auto")) {
             return setAutoBrightness()
         }
 

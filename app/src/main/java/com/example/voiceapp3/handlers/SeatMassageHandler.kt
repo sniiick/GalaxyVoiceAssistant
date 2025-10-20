@@ -25,7 +25,7 @@ class SeatMassageHandler(private val vehiclePropertyHelper: VehiclePropertyHelpe
     private val MAX_POWER = 3
     private var MIN_TYPE = 1
     private var MAX_TYPE = -1 // handled below
-    private val TYPE_KEYWORDS = setOf("тип", "режим", "вариант")
+    private val TYPE_KEYWORDS = setOf("type", "mode", "variant")
     private var TYPE_ACTION: Boolean = false
 
     override fun canHandle(intent: String): Boolean = intent == "seat_massage"

@@ -62,11 +62,11 @@ class OpenAppHandler(private val context: Context) : IntentHandler {
     }
 
     private val customAppMap: Map<String, Intent> = mapOf(
-        "инженер" to getEngineerIntent(),
-        "музык" to yaMusicIntent,
-        "параметры" to Intent(Settings.ACTION_SETTINGS),
-        "карта" to naviIntent, "карту" to naviIntent, "карты" to naviIntent, "маршрут" to naviIntent,
-        "нави" to naviIntent, "навигатор" to naviIntent, "навигация" to naviIntent,
+        "engineer" to getEngineerIntent(),
+        "music" to yaMusicIntent,
+        "settings" to Intent(Settings.ACTION_SETTINGS),
+        "map" to naviIntent, "route" to naviIntent,
+        "navi" to naviIntent, "navigator" to naviIntent, "navigation" to naviIntent,
     )
 
     override fun canHandle(intent: String): Boolean = intent == "open_app"

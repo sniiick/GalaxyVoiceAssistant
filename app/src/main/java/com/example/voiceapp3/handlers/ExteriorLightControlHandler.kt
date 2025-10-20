@@ -19,29 +19,29 @@ class ExteriorLightControlHandler(private val vehiclePropertyHelper: VehicleProp
     // Light types and their corresponding values
     private enum class ExteriorLightType(
         val propertyId: Int,
-        val russianName: String,
+        val englishName: String,
         val regex: Regex,
         val setValue: Int,
         val unsetValue: Int
     ) {
         HEADLIGHTS(
             EXTERIOR_LIGHT_CONTROL_PROPERTY,
-            "фары",
-            Regex("фар[ыae]|свет|ближний", RegexOption.IGNORE_CASE),
+            "headlights",
+            Regex("headlight(s)?|light(s)?|beam(s)?", RegexOption.IGNORE_CASE),
             3,
             0
         ),
         PARKING(
             EXTERIOR_LIGHT_CONTROL_PROPERTY,
-            "габариты",
-            Regex("габарит", RegexOption.IGNORE_CASE),
+            "parking lights",
+            Regex("parking light(s)?|position light(s)?", RegexOption.IGNORE_CASE),
             1,
             0
         ),
         FOG_LIGHTS(
             EXTERIOR_FOG_CONTROL_PROPERTY,
-            "туманки",
-            Regex("туман", RegexOption.IGNORE_CASE),
+            "fog lights",
+            Regex("fog light(s)?|fog lamp(s)?", RegexOption.IGNORE_CASE),
             1,
             0
         );
@@ -80,7 +80,7 @@ class ExteriorLightControlHandler(private val vehiclePropertyHelper: VehicleProp
             )
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to set exterior light to ${lightType.russianName}", e)
+            Log.e(TAG, "Failed to set exterior light to ${lightType.englishName}", e)
             false
         }
     }
@@ -94,7 +94,7 @@ class ExteriorLightControlHandler(private val vehiclePropertyHelper: VehicleProp
             )
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to unset exterior light for ${lightType.russianName}", e)
+            Log.e(TAG, "Failed to unset exterior light for ${lightType.englishName}", e)
             false
         }
     }

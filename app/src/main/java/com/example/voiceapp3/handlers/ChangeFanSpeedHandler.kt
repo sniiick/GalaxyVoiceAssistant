@@ -29,17 +29,17 @@ class ChangeFanSpeedHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : 
         val params = extractCommonEntities(prediction)
         val directions = mutableSetOf<Int>()
 
-        if (prediction.normalizedText.contains(Regex("салон|внутр|лицо"))) directions.add(1)
-        if (prediction.normalizedText.contains(Regex("ног|вниз"))) directions.add(2)
-        if (prediction.normalizedText.contains(Regex("стекл|стёкл|вверх|лобов"))) directions.add(4)
-        if (prediction.normalizedText.contains(Regex("везде|всюду|всего|всё|вместе"))) {
+        if (prediction.normalizedText.contains(Regex("cabin|inside|face"))) directions.add(1)
+        if (prediction.normalizedText.contains(Regex("feet|down"))) directions.add(2)
+        if (prediction.normalizedText.contains(Regex("glass|up|windshield"))) directions.add(4)
+        if (prediction.normalizedText.contains(Regex("everywhere|all|together"))) {
             directions.clear()
             directions.add(7)
         }
         if (!directions.isEmpty()) {
             handleSetFanSpeed(params, shouldSetAuto = false)
 
-            val isMultiple = prediction.normalizedText.contains("плюс") || directions.size > 1
+            val isMultiple = prediction.normalizedText.contains("plus") || directions.size > 1
             if (isMultiple) {
                 val combinedDirection = directions.reduce { acc, dir -> acc + dir }
                 return acControlHandler.setAcDirection(combinedDirection)

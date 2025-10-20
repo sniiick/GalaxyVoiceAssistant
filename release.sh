@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Скрипт для создания zip-архива с Galaxy Voice Assistant
+# Script to create a zip archive with Galaxy Voice Assistant
 set -e
 
-# Проверяем, что передана версия
+# Check if a version is provided
 if [ -z "$1" ]; then
-    echo "Использование: $0 <версия>"
-    echo "Пример: $0 2.2"
+    echo "Usage: $0 <version>"
+    echo "Example: $0 2.2"
     exit 1
 fi
 
@@ -14,66 +14,66 @@ VERSION="$1"
 OUTPUT_ZIP="galaxy_voice_assistant_v${VERSION}.zip"
 TEMP_DIR="./temp_package"
 
-echo "Создание пакета Galaxy Voice Assistant v${VERSION}..."
-echo "Выходной файл: $OUTPUT_ZIP"
+echo "Creating Galaxy Voice Assistant package v${VERSION}..."
+echo "Output file: $OUTPUT_ZIP"
 echo
 
-# Создаем временную директорию
+# Create a temporary directory
 mkdir -p "$TEMP_DIR"
 mkdir -p "$TEMP_DIR/jniLibs"
 mkdir -p "$TEMP_DIR/scrcpy-win64"
 
-# Копируем файлы в корень архива
-echo "Копирование основных файлов..."
+# Copy files to the archive root
+echo "Copying main files..."
 cp "./scripts/install_assistant.bat" "$TEMP_DIR/"
 cp "./app-release.apk" "$TEMP_DIR/"
 cp "./app-release-nonroot.apk" "$TEMP_DIR/"
 
-# Копируем JNI библиотеки
-echo "Копирование JNI библиотек..."
+# Copy JNI libraries
+echo "Copying JNI libraries..."
 cp "./app/src/main/jniLibs/arm64-v8a/libvosk.so" "$TEMP_DIR/jniLibs/"
 cp "./app/src/main/jniLibs/arm64-v8a/libsherpa-onnx-jni.so" "$TEMP_DIR/jniLibs/"
 cp "./app/src/main/jniLibs/arm64-v8a/libonnxruntime4j_jni.so" "$TEMP_DIR/jniLibs/"
 cp "./app/src/main/jniLibs/arm64-v8a/libonnxruntime.so" "$TEMP_DIR/jniLibs/"
 cp "./app/src/main/jniLibs/arm64-v8a/libjnidispatch.so" "$TEMP_DIR/jniLibs/"
 
-# Копируем scrcpy-win64
-echo "Копирование scrcpy-win64..."
+# Copy scrcpy-win64
+echo "Copying scrcpy-win64..."
 cp -R "./scrcpy-win64/"* "$TEMP_DIR/scrcpy-win64/"
 
-# Создаем README файл с инструкциями
+# Create README file with instructions
 cat > "$TEMP_DIR/README.txt" << EOF
-Galaxy Voice Assistant v${VERSION} - Инструкция по установке
+Galaxy Voice Assistant v${VERSION} - Installation Instructions
 
-Содержимое пакета:
-- install_assistant.bat - Скрипт установки для Windows
-- app-release.apk - Приложение для устройств с ROOT
-- app-release-nonroot.apk - Приложение для устройств без ROOT
-- jniLibs/ - Нативные библиотеки
-- scrcpy-win64/ - Утилита для отображения экрана устройства
+Package Contents:
+- install_assistant.bat - Installation script for Windows
+- app-release.apk - Application for devices with ROOT
+- app-release-nonroot.apk - Application for devices without ROOT
+- jniLibs/ - Native libraries
+- scrcpy-win64/ - Utility for displaying the device screen
 
-Инструкция:
-1. Для Windows: Запустите install_assistant.bat
-2. Следуйте инструкциям в меню
+Instructions:
+1. For Windows: Run install_assistant.bat
+2. Follow the instructions in the menu
 
-Важно: Перед установкой убедитесь, что:
-- ADB включен на устройстве
-- Устройство подключено по USB
-- Разрешена отладка по USB
+Important: Before installation, make sure that:
+- ADB is enabled on the device
+- The device is connected via USB
+- USB debugging is allowed
 
-Версия: ${VERSION}
+Version: ${VERSION}
 EOF
 
-# Создаем zip-архив
-echo "Создание zip-архива..."
+# Create zip archive
+echo "Creating zip archive..."
 cd "$TEMP_DIR"
 zip -r "../$OUTPUT_ZIP" ./*
 cd ..
 
-# Очищаем временные файлы
-echo "Очистка временных файлов..."
+# Clean up temporary files
+echo "Cleaning up temporary files..."
 rm -rf "$TEMP_DIR"
 
 echo
-echo "Готово! Создан архив: $OUTPUT_ZIP"
-echo "Размер архива: $(du -h "$OUTPUT_ZIP" | cut -f1)"
+echo "Done! Archive created: $OUTPUT_ZIP"
+echo "Archive size: $(du -h "$OUTPUT_ZIP" | cut -f1)"

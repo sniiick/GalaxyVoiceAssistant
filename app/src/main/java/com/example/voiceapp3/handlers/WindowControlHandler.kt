@@ -37,10 +37,10 @@ class WindowControlHandler(private val vehiclePropertyHelper: VehiclePropertyHel
     private var MAX_CURTAIN_OPERATIONAL_VALUE = 88
 
     // Regex patterns for special cases
-    private val sunroofRegex = Regex("люк|крыш[ауеи]|верхнее|сверху|наверху|панорам[ау]]", RegexOption.IGNORE_CASE)
-    private val curtainRegex = Regex("шторк[ау]", RegexOption.IGNORE_CASE)
-    private val pluralRegex = Regex("окна|ст[ёе]кла", RegexOption.IGNORE_CASE)
-    private val aBitRegex = Regex("чуть|при откр|приоткр|приподн|призакр|приопуст|немного|слегка", RegexOption.IGNORE_CASE)
+    private val sunroofRegex = Regex("sunroof|roof|top|panorama", RegexOption.IGNORE_CASE)
+    private val curtainRegex = Regex("curtain|shade", RegexOption.IGNORE_CASE)
+    private val pluralRegex = Regex("windows|glass", RegexOption.IGNORE_CASE)
+    private val aBitRegex = Regex("a bit|slightly|crack", RegexOption.IGNORE_CASE)
     private var aBit: Boolean = false
 
     override fun canHandle(intent: String): Boolean = intent == "window_control"
@@ -58,8 +58,8 @@ class WindowControlHandler(private val vehiclePropertyHelper: VehiclePropertyHel
         }
 
         return when {
-            // Handle sunroof cases. Curtain is first (case "открой шторку люка")
-            curtainRegex.containsMatchIn(prediction.normalizedText) -> handleCurtain(params)
+            // Handle sunroof cases. Curtain is first (case "open the sunroof curtain")
+            curtainRegex.containsMatchIn(prediction.normalizedText) -> handleCurtain(params) // case "open the sunroof curtain"
             sunroofRegex.containsMatchIn(prediction.normalizedText) -> handleSunroof(params)
             else -> handleWindows(params, prediction)
         }
