@@ -99,8 +99,7 @@ class VoiceAssistantService : Service() {
     private var windowManager: WindowManager? = null
     private var overlayView: View? = null
     private val commandSeparators = listOf(
-        "и", "затем", "а затем", "потом", "а еще", "а потом",
-        "после этого", "после того", "далее", "дальше", "также", "так же"
+        "and", "then", "and then", "after that", "also"
     )
 
     private fun checkAndRequestPermissions(): Boolean {
@@ -376,7 +375,7 @@ class VoiceAssistantService : Service() {
         logOverlayState()
         if (model == null || recognizer == null) {
             Log.w(TAG, "Model not initialized, cannot start recognition")
-            Toast.makeText(this, "Голосовая модель ещё не загружена", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Voice model is not loaded yet", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -415,7 +414,7 @@ class VoiceAssistantService : Service() {
             playSound(R.raw.overlay_start)
             requestAudioFocus()
             showOverlay()
-            updateStatusText("...слушаю...")
+            updateStatusText("...listening...")
 
             startTimeout()
 
@@ -729,7 +728,7 @@ class VoiceAssistantService : Service() {
     }
     private fun resetListeningStatus() {
         handler.postDelayed({
-            updateStatusText("...слушаю...")
+            updateStatusText("...listening...")
         }, 500)
     }
     private fun cleanup() {

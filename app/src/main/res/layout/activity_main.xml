@@ -52,7 +52,7 @@
             android:id="@+id/loading_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Загрузка голосового ассистента..."
+            android:text="Loading voice assistant..."
             android:textSize="22sp"
             android:layout_marginTop="16dp"/>
     </LinearLayout>
@@ -75,7 +75,7 @@
             android:id="@+id/subtitle_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Раздел в разработке"
+            android:text="Section in development"
             android:textSize="22sp"
             android:layout_marginTop="32dp"/>
 

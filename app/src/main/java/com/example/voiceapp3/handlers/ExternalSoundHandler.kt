@@ -14,8 +14,8 @@ class ExternalSoundHandler(private val carAudioPlayer: CarAudioPlayer) : IntentH
         val sound = extractSoundName(prediction.normalizedText) ?: return false
 
         val soundName = when (sound) {
-            "кошка" -> "cat.wav"
-            "нахуй" -> "nah.mp3"
+            "cat" -> "cat.wav"
+            "fuck" -> "nah.mp3"
             else -> return false
         }
 
@@ -28,7 +28,7 @@ class ExternalSoundHandler(private val carAudioPlayer: CarAudioPlayer) : IntentH
         }
     }
     private fun extractSoundName(command: String): String? {
-        val soundKeywords = listOf("кошка", "нахуй")
+        val soundKeywords = listOf("cat", "fuck")
         return soundKeywords.firstOrNull { command.contains(it) }
     }
 }
@@ -36,7 +36,7 @@ class ExternalSoundHandler(private val carAudioPlayer: CarAudioPlayer) : IntentH
 
 class ExternalSpeechHandler(private val carAudioPlayer: CarAudioPlayer) : IntentHandler {
     private val TAG = "ExternalSpeechHandler"
-    private val speechPrefixes = listOf("скажи", "сказать", "озвучь", "произнеси")
+    private val speechPrefixes = listOf("say", "tell", "speak", "pronounce")
 
     override fun canHandle(intent: String) = intent == "play_text"
 

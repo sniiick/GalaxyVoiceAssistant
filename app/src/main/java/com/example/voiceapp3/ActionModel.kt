@@ -6,8 +6,8 @@ import ai.onnxruntime.OrtSession
 import ai.onnxruntime.OrtUtil
 import android.content.Context
 import android.util.Log
-import com.example.voiceapp3.parsers.RussianEntityExtractor
-import com.example.voiceapp3.parsers.RussianNumberParser
+import com.example.voiceapp3.parsers.EnglishEntityExtractor
+import com.example.voiceapp3.parsers.EnglishNumberParser
 import java.io.File
 import java.io.FileOutputStream
 
@@ -73,7 +73,7 @@ class ActionModel(context: Context, modelPath: String) {
     fun predict(command: String): PredictionResult {
         try {
             val normalized = normalizeText(command)
-            val entities = RussianEntityExtractor.extractEntities(normalized)
+            val entities = EnglishEntityExtractor.extractEntities(normalized)
 
             // 1. First try to determine intent by keywords
             val keywordIntent = detectIntentByKeywords(normalized)
@@ -115,27 +115,27 @@ class ActionModel(context: Context, modelPath: String) {
 
     private fun detectIntentByKeywords(text: String): String? {
         return when {
-            Regex("град(?:ус|усе|уса|усы)|темпер|тепл|жар|холод|прохлад").containsMatchIn(text) -> "change_ac_temp"
-            Regex("вентилятор|обдув|дуть|дуй").containsMatchIn(text) -> "change_fan_speed"
-            Regex("вентиляци[яю]").containsMatchIn(text) -> "seat_ventilation"
-            Regex("подогрев|обогрев|греть|грей").containsMatchIn(text) -> "seat_heat"
-            Regex("массаж").containsMatchIn(text) -> "seat_massage"
-            Regex("заряд|двигатель|мотор|движок").containsMatchIn(text) -> "fuel_charge"
-            Regex("багажник|багаж").containsMatchIn(text) -> "trunk_control"
-            Regex("яркость|экран|монитор|дисплей|планшет").containsMatchIn(text) -> "screen_brightness"
-            Regex("стекл|шторк|люк|панорам[ау]").containsMatchIn(text) -> "window_control"
-            Regex("бензин|заправ(?:к.*|ля.*|и.*)|бензобак").containsMatchIn(text) -> "fuel_door_open"
-            Regex("скажи").containsMatchIn(text) -> "play_text"
-            Regex("ближний|ближний свет|фар([ыау])|туман|габарит").containsMatchIn(text) -> "exterior_light_control"
-            Regex("свет").containsMatchIn(text) -> "light_control"
-            Regex("режим|режим вождения|вождения|гибрид|электр|спорт").containsMatchIn(text) -> "drive_mode"
-            Regex("кошка|нахуй").containsMatchIn(text) -> "play_sound"
+            Regex("degree(s)?|temperature|warm|hot|cold|cool").containsMatchIn(text) -> "change_ac_temp"
+            Regex("fan|blow").containsMatchIn(text) -> "change_fan_speed"
+            Regex("ventilation").containsMatchIn(text) -> "seat_ventilation"
+            Regex("heating|heat").containsMatchIn(text) -> "seat_heat"
+            Regex("massage").containsMatchIn(text) -> "seat_massage"
+            Regex("charge|engine|motor").containsMatchIn(text) -> "fuel_charge"
+            Regex("trunk|luggage").containsMatchIn(text) -> "trunk_control"
+            Regex("brightness|screen|monitor|display|tablet").containsMatchIn(text) -> "screen_brightness"
+            Regex("window|curtain|sunroof|panorama").containsMatchIn(text) -> "window_control"
+            Regex("gas|fuel|fill|tank").containsMatchIn(text) -> "fuel_door_open"
+            Regex("say|tell").containsMatchIn(text) -> "play_text"
+            Regex("low beam|headlight(s)?|fog|parking light(s)?").containsMatchIn(text) -> "exterior_light_control"
+            Regex("light").containsMatchIn(text) -> "light_control"
+            Regex("mode|drive mode|driving|hybrid|electric|sport").containsMatchIn(text) -> "drive_mode"
+            Regex("cat|fuck").containsMatchIn(text) -> "play_sound"
             else -> null
         }
     }
 
     private fun normalizeText(text: String): String {
-        val normalizedText = RussianNumberParser.parseRussianNumber(text.trim())
+        val normalizedText = EnglishNumberParser.parseEnglishNumber(text.trim())
         return normalizedText
     }
 

@@ -8,10 +8,10 @@ import com.example.voiceapp3.car.VehiclePropertyHelper
 
 class DriveModeHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
     private val TAG: String? = "FuelChargingHandler"
-    private val mode1 = Regex("эко|интеллект|адаптив" , RegexOption.IGNORE_CASE)
-    private val mode2 = Regex("электр|батаре" , RegexOption.IGNORE_CASE)
-    private val mode3 = Regex("гибрид" , RegexOption.IGNORE_CASE)
-    private val mode4 = Regex("спорт" , RegexOption.IGNORE_CASE)
+    private val mode1 = Regex("eco|intelligent|adaptive" , RegexOption.IGNORE_CASE)
+    private val mode2 = Regex("electric|battery" , RegexOption.IGNORE_CASE)
+    private val mode3 = Regex("hybrid" , RegexOption.IGNORE_CASE)
+    private val mode4 = Regex("sport" , RegexOption.IGNORE_CASE)
 
 
     override fun canHandle(intent: String): Boolean = intent in "drive_mode"
