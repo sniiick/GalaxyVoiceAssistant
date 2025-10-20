@@ -25,16 +25,18 @@ echo 2 - Update application
 echo 3 - Remove application
 echo 4 - Run scrcpy
 echo 5 - Disable native assistant
-echo 6 - Exit
+echo 6 - Restore native assistant
+echo 7 - Exit
 echo.
-set /p choice="Enter action number (1-5): "
+set /p choice="Enter action number (1-7): "
 
 if "%choice%"=="1" goto install_menu
 if "%choice%"=="2" goto update_menu
 if "%choice%"=="3" goto remove_menu
 if "%choice%"=="4" goto run_scrcpy
 if "%choice%"=="5" goto remove_native_assistant
-if "%choice%"=="6" exit /b
+if "%choice%"=="6" goto restore_native_assistant
+if "%choice%"=="7" exit /b
 echo Invalid choice, try again.
 echo.
 pause
@@ -135,6 +137,23 @@ if !errorlevel! neq 0 (
     echo Warning: Failed to disable com.baidu.iov.dueros.activate (correct, model specific)
 )
 echo.
+pause
+goto main_menu
+
+
+:restore_native_assistant
+call :check_device
+echo Restoring stock assistant...
+%ADB_PATH% shell pm enable com.baidu.iov.sal >nul 2>&1
+if !errorlevel! neq 0 (
+    echo Warning: Failed to enable com.baidu.iov.sal
+)
+%ADB_PATH% shell pm enable com.baidu.iov.dueros.activate >nul 2>&1
+if !errorlevel! neq 0 (
+    echo Warning: Failed to enable com.baidu.iov.dueros.activate
+)
+echo.
+echo Native assistant has been restored.
 pause
 goto main_menu
 
@@ -326,6 +345,12 @@ echo Removing for ROOT devices...
 %ADB_PATH% remount
 %ADB_PATH% shell pm uninstall --user 0 com.example.voiceapp3
 %ADB_PATH% shell rm -rf /system/priv-app/VoiceAssistant
+echo Removing native libraries...
+%ADB_PATH% shell rm -f /system/lib64/libonnxruntime4j_jni.so
+%ADB_PATH% shell rm -f /system/lib64/libonnxruntime.so
+%ADB_PATH% shell rm -f /system/lib64/libjnidispatch.so
+%ADB_PATH% shell rm -f /system/lib64/libvosk.so
+%ADB_PATH% shell rm -f /system/lib64/libsherpa-onnx-jni.so
 %ADB_PATH% reboot
 
 echo Removal completed. Device is rebooting.
@@ -340,7 +365,7 @@ if !errorlevel! neq 0 (
 )
 
 echo Removing for non-ROOT devices...
-%ADB_PATH% shell pm uninstall --user current com.baidu.che.codriver
+%ADB_PATH% shell pm uninstall --user current com.example.voiceapp3
 if !errorlevel! neq 0 (
     echo Error: Failed to uninstall application
     echo.
