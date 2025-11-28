@@ -4,24 +4,18 @@ import android.util.Log
 import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
-import com.example.voiceapp3.tools.CarModel
-import com.example.voiceapp3.tools.ModelEnum
+import com.example.voiceapp3.tools.CarPropertyRegistry
 
 class LightControlHandler(private val vehiclePropertyHelper: VehiclePropertyHelper) :
     IntentHandler {
-    private val TAG: String? = "LightControlHandler"
+    private val TAG = "LightControlHandler"
 
-    // Property ID for reading lights
-    private var LIGHT_CONTROL_PROPERTY = 356544592
+    private val lightConfig = CarPropertyRegistry.Light.INTERIOR
 
     override fun canHandle(intent: String): Boolean = intent == "light_control"
 
     override fun handle(prediction: PredictionResult): Boolean {
         val params = extractCommonEntities(prediction)
-
-        if (CarModel.isCoolray) {
-            LIGHT_CONTROL_PROPERTY = 356519684
-        }
 
         return when (params.action) {
             "set" -> setLight(true)
@@ -31,16 +25,13 @@ class LightControlHandler(private val vehiclePropertyHelper: VehiclePropertyHelp
     }
 
     fun setLight(turnOn: Boolean): Boolean {
-        // The area IDs from the config (1, 2, 4, 16, 64)
-        // You might want to handle these differently based on your requirements
-        val supportedAreas = listOf(1, 2, 4, 16, 64)
-
-        // For simplicity, we'll apply the action to all supported areas
         var success = false
-        supportedAreas.forEach { areaId ->
+        val propertyId = lightConfig.getPropertyId()
+
+        CarPropertyRegistry.Light.SUPPORTED_AREAS.forEach { areaId ->
             try {
                 vehiclePropertyHelper.setIntProperty(
-                    LIGHT_CONTROL_PROPERTY,
+                    propertyId,
                     areaId,
                     if (turnOn) 1 else 0
                 )

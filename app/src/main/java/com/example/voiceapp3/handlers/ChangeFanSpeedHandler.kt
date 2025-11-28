@@ -1,31 +1,32 @@
 package com.example.voiceapp3.handlers
 
-import android.car.VehiclePropertyIds
 import android.util.Log
 import com.example.voiceapp3.CommandParams
 import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
 import com.example.voiceapp3.tools.CarModel
-import com.example.voiceapp3.tools.ModelEnum
-import java.lang.Integer.sum
+import com.example.voiceapp3.tools.CarPropertyRegistry
 
 
-class ChangeFanSpeedHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
-    private val TAG: String? = "ChangeFanSpeedHandler"
-    private val acControlHandler: AcControlHandler = AcControlHandler(vehiclePropertyHelper)
-    private val areaId: Int = 5
-    private val defaultSpeedChange: Int = 1
-    private var minSpeed: Int = 1
-    private var maxSpeed: Int = 9
+class ChangeFanSpeedHandler(private val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
+    private val TAG = "ChangeFanSpeedHandler"
+    private val acControlHandler = AcControlHandler(vehiclePropertyHelper)
+
+    private val fanSpeedConfig = CarPropertyRegistry.Hvac.FAN_SPEED
+    private val defaultSpeedChange = 1
+    private val minSpeed = CarPropertyRegistry.Hvac.MIN_FAN_SPEED_STARSHIP
+
+    private val maxSpeed: Int
+        get() = if (CarModel.isCoolray) {
+            CarPropertyRegistry.Hvac.MAX_FAN_SPEED_COOLRAY
+        } else {
+            CarPropertyRegistry.Hvac.MAX_FAN_SPEED_STARSHIP
+        }
 
     override fun canHandle(intent: String): Boolean = intent == "change_fan_speed"
 
     override fun handle(prediction: PredictionResult): Boolean {
-        if (CarModel.isCoolray) {
-            maxSpeed = 8
-        }
-
         val params = extractCommonEntities(prediction)
         val directions = mutableSetOf<Int>()
 
@@ -36,15 +37,16 @@ class ChangeFanSpeedHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : 
             directions.clear()
             directions.add(7)
         }
-        if (!directions.isEmpty()) {
+
+        if (directions.isNotEmpty()) {
             handleSetFanSpeed(params, shouldSetAuto = false)
 
             val isMultiple = prediction.normalizedText.contains("плюс") || directions.size > 1
-            if (isMultiple) {
+            return if (isMultiple) {
                 val combinedDirection = directions.reduce { acc, dir -> acc + dir }
-                return acControlHandler.setAcDirection(combinedDirection)
+                acControlHandler.setAcDirection(combinedDirection)
             } else {
-                return acControlHandler.setAcDirection(directions.first())
+                acControlHandler.setAcDirection(directions.first())
             }
         }
 
@@ -65,7 +67,7 @@ class ChangeFanSpeedHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : 
             params.value != null && params.unit == "percent" -> {
                 when (params.value) {
                     1 -> setFanSpeed(minSpeed)
-                    50 -> setFanSpeed(sum(minSpeed, maxSpeed) / 2)
+                    50 -> setFanSpeed((minSpeed + maxSpeed) / 2)
                     100 -> setFanSpeed(maxSpeed)
                     else -> false
                 }
@@ -82,8 +84,8 @@ class ChangeFanSpeedHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : 
 
     private fun handleChangeFanSpeed(params: CommandParams): Boolean {
         val currentSpeed = vehiclePropertyHelper.getIntProperty(
-            VehiclePropertyIds.HVAC_FAN_SPEED,
-            areaId
+            fanSpeedConfig.getPropertyId(),
+            fanSpeedConfig.getAreaId()
         )
 
         if (currentSpeed == -1) {
@@ -92,29 +94,21 @@ class ChangeFanSpeedHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : 
         }
 
         val newSpeed = when {
-            // Increase cases
             params.action == "increase" && params.value != null && params.unit == "number" ->
                 currentSpeed + params.value
 
             params.action == "increase" && params.value != null && params.unit == "percent" -> {
-                when (params.value) {
-                    100 -> maxSpeed
-                    else -> currentSpeed + defaultSpeedChange
-                }
+                if (params.value == 100) maxSpeed else currentSpeed + defaultSpeedChange
             }
 
             params.action == "increase" ->
                 currentSpeed + defaultSpeedChange
 
-            // Decrease cases
             params.action == "decrease" && params.value != null && params.unit == "number" ->
                 currentSpeed - params.value
 
             params.action == "decrease" && params.value != null && params.unit == "percent" -> {
-                when (params.value) {
-                    100 -> minSpeed
-                    else -> currentSpeed - defaultSpeedChange
-                }
+                if (params.value == 100) minSpeed else currentSpeed - defaultSpeedChange
             }
 
             params.action == "decrease" ->
@@ -130,16 +124,12 @@ class ChangeFanSpeedHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : 
             return false
         }
 
-        val clampedSpeed = when {
-            speed > maxSpeed -> maxSpeed
-            speed < minSpeed -> minSpeed
-            else -> speed
-        }
+        val clampedSpeed = speed.coerceIn(minSpeed, maxSpeed)
 
-        Log.i(TAG, "Changing fan speed from to $clampedSpeed")
+        Log.i(TAG, "Changing fan speed to $clampedSpeed")
         return vehiclePropertyHelper.setIntProperty(
-            VehiclePropertyIds.HVAC_FAN_SPEED,
-            areaId,
+            fanSpeedConfig.getPropertyId(),
+            fanSpeedConfig.getAreaId(),
             clampedSpeed
         )
     }

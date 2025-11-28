@@ -14,6 +14,7 @@ import com.example.voiceapp3.handlers.ExternalSpeechHandler
 import com.example.voiceapp3.handlers.FuelCharingHandler
 import com.example.voiceapp3.handlers.FuelDoorHandler
 import com.example.voiceapp3.handlers.LightControlHandler
+import com.example.voiceapp3.handlers.MediaControlHandler
 import com.example.voiceapp3.handlers.OpenAppHandler
 import com.example.voiceapp3.handlers.SeatClimateHandler
 import com.example.voiceapp3.handlers.SeatMassageHandler
@@ -22,6 +23,7 @@ import com.example.voiceapp3.handlers.WindowControlHandler
 import com.example.voiceapp3.handlers.getAction
 import com.example.voiceapp3.handlers.getUnit
 import com.example.voiceapp3.handlers.getValue
+import com.example.voiceapp3.tools.VoiceFeedback
 
 
 interface IntentHandler {
@@ -44,7 +46,13 @@ data class CommandParams(
 )
 
 
-class IntentHandlerRegistry(vehiclePropertyHelper: VehiclePropertyHelper, carAudioPlayer: CarAudioPlayer, context: Context) {
+class IntentHandlerRegistry(
+    vehiclePropertyHelper: VehiclePropertyHelper,
+    carAudioPlayer: CarAudioPlayer,
+    context: Context
+) {
+    val voiceFeedback = VoiceFeedback(carAudioPlayer)
+
     private val handlers = mutableListOf(
         AcControlHandler(vehiclePropertyHelper),
         TrunkControlHandler(vehiclePropertyHelper),
@@ -62,6 +70,7 @@ class IntentHandlerRegistry(vehiclePropertyHelper: VehiclePropertyHelper, carAud
         ChangeScreenBrightnessHandler(vehiclePropertyHelper),
         FuelCharingHandler(vehiclePropertyHelper),
         DriveModeHandler(vehiclePropertyHelper),
+        MediaControlHandler(context),
     )
 
     fun register(handler: IntentHandler) {
@@ -69,7 +78,13 @@ class IntentHandlerRegistry(vehiclePropertyHelper: VehiclePropertyHelper, carAud
     }
 
     fun handle(prediction: PredictionResult): Boolean {
-        return handlers.firstOrNull { it.canHandle(prediction.intent) }
-            ?.handle(prediction) ?: false
+        val handler = handlers.firstOrNull { it.canHandle(prediction.intent) }
+        if (handler == null) {
+            return false
+        }
+
+        val success = handler.handle(prediction)
+        voiceFeedback.confirm(prediction.intent, success)
+        return success
     }
 }
