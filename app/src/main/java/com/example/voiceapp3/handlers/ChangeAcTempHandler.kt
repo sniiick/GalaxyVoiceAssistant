@@ -1,23 +1,23 @@
 package com.example.voiceapp3.handlers
 
-import android.car.VehicleAreaSeat
-import android.car.VehiclePropertyIds
 import android.util.Log
 import com.example.voiceapp3.CommandParams
 import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
-import java.lang.Float.sum
+import com.example.voiceapp3.tools.CarPropertyRegistry
 import kotlin.math.roundToInt
 
-class ChangeAcTempHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
-    private val TAG: String? = "ChangeAcTempHandler"
-    private val acControlHandler: AcControlHandler = AcControlHandler(vehiclePropertyHelper)
-    private val areaId: Int = VehicleAreaSeat.SEAT_ROW_1_LEFT
-    private val defaultTempChange: Float = 2f
-    private val minTemp: Float = 15.5f
-    private val maxTemp: Float = 28.5f
-    override fun canHandle(intent: String): Boolean = intent in "change_ac_temp"
+class ChangeAcTempHandler(private val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
+    private val TAG = "ChangeAcTempHandler"
+    private val acControlHandler = AcControlHandler(vehiclePropertyHelper)
+
+    private val tempConfig = CarPropertyRegistry.Hvac.TEMPERATURE
+    private val defaultTempChange = 2f
+    private val minTemp = CarPropertyRegistry.Hvac.MIN_TEMP
+    private val maxTemp = CarPropertyRegistry.Hvac.MAX_TEMP
+
+    override fun canHandle(intent: String): Boolean = intent == "change_ac_temp"
 
     override fun handle(prediction: PredictionResult): Boolean {
         val params = extractCommonEntities(prediction)
@@ -39,7 +39,7 @@ class ChangeAcTempHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : In
             params.value != null && params.unit == "percent" -> {
                 when (params.value) {
                     1 -> setTemp(minTemp)
-                    50 -> setTemp((sum(minTemp, maxTemp) / 2f).roundToHalf())
+                    50 -> setTemp(((minTemp + maxTemp) / 2f).roundToHalf())
                     100 -> setTemp(maxTemp)
                     else -> false
                 }
@@ -50,8 +50,8 @@ class ChangeAcTempHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : In
 
     private fun handleChangeTemperature(params: CommandParams): Boolean {
         val currentTemp = vehiclePropertyHelper.getFloatProperty(
-            VehiclePropertyIds.HVAC_TEMPERATURE_SET,
-            areaId
+            tempConfig.getPropertyId(),
+            tempConfig.getAreaId()
         )
 
         if (currentTemp == -1f) {
@@ -60,7 +60,6 @@ class ChangeAcTempHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : In
         }
 
         val newTemp = when {
-            // Increase cases
             params.action == "increase" && params.value != null && params.unit == "degree" ->
                 currentTemp + params.value
 
@@ -72,7 +71,6 @@ class ChangeAcTempHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : In
             params.action == "increase" ->
                 currentTemp + defaultTempChange
 
-            // Decrease cases
             params.action == "decrease" && params.value != null && params.unit == "degree" ->
                 currentTemp - params.value
 
@@ -98,16 +96,12 @@ class ChangeAcTempHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : In
             return false
         }
 
-        val clampedTemp = when {
-            temp > maxTemp -> maxTemp
-            temp < minTemp -> minTemp
-            else -> temp
-        }
+        val clampedTemp = temp.coerceIn(minTemp, maxTemp)
 
         Log.i(TAG, "Changing temperature to $clampedTemp")
         return vehiclePropertyHelper.setFloatProperty(
-            VehiclePropertyIds.HVAC_TEMPERATURE_SET,
-            areaId,
+            tempConfig.getPropertyId(),
+            tempConfig.getAreaId(),
             clampedTemp
         )
     }

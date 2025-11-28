@@ -4,42 +4,38 @@ import android.util.Log
 import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
+import com.example.voiceapp3.tools.CarPropertyRegistry
 
 class ExteriorLightControlHandler(private val vehiclePropertyHelper: VehiclePropertyHelper) :
     IntentHandler {
-    private val TAG: String = "ExteriorLightControlHandler"
+    private val TAG = "ExteriorLightControlHandler"
 
-    // Property ID for exterior lights
-    companion object {
-        private val EXTERIOR_LIGHT_CONTROL_PROPERTY = 557871126
-        private val EXTERIOR_FOG_CONTROL_PROPERTY = 289410578
-        private val EXTERIOR_LIGHT_AREA_ID = 0
-    }
+    private val exteriorConfig = CarPropertyRegistry.Light.EXTERIOR
+    private val fogConfig = CarPropertyRegistry.Light.FOG
 
-    // Light types and their corresponding values
     private enum class ExteriorLightType(
-        val propertyId: Int,
+        val configGetter: () -> Int,
         val russianName: String,
         val regex: Regex,
         val setValue: Int,
         val unsetValue: Int
     ) {
         HEADLIGHTS(
-            EXTERIOR_LIGHT_CONTROL_PROPERTY,
+            { CarPropertyRegistry.Light.EXTERIOR.getPropertyId() },
             "фары",
             Regex("фар[ыae]|свет|ближний", RegexOption.IGNORE_CASE),
-            3,
-            0
+            CarPropertyRegistry.Light.HEADLIGHTS_ON,
+            CarPropertyRegistry.Light.OFF
         ),
         PARKING(
-            EXTERIOR_LIGHT_CONTROL_PROPERTY,
+            { CarPropertyRegistry.Light.EXTERIOR.getPropertyId() },
             "габариты",
             Regex("габарит", RegexOption.IGNORE_CASE),
-            1,
-            0
+            CarPropertyRegistry.Light.PARKING_ON,
+            CarPropertyRegistry.Light.OFF
         ),
         FOG_LIGHTS(
-            EXTERIOR_FOG_CONTROL_PROPERTY,
+            { CarPropertyRegistry.Light.FOG.getPropertyId() },
             "туманки",
             Regex("туман", RegexOption.IGNORE_CASE),
             1,
@@ -74,8 +70,8 @@ class ExteriorLightControlHandler(private val vehiclePropertyHelper: VehicleProp
     private fun setExteriorLight(lightType: ExteriorLightType): Boolean {
         return try {
             vehiclePropertyHelper.setIntProperty(
-                lightType.propertyId,
-                EXTERIOR_LIGHT_AREA_ID,
+                lightType.configGetter(),
+                0,
                 lightType.setValue
             )
             true
@@ -88,8 +84,8 @@ class ExteriorLightControlHandler(private val vehiclePropertyHelper: VehicleProp
     private fun unsetExteriorLight(lightType: ExteriorLightType): Boolean {
         return try {
             vehiclePropertyHelper.setIntProperty(
-                lightType.propertyId,
-                EXTERIOR_LIGHT_AREA_ID,
+                lightType.configGetter(),
+                0,
                 lightType.unsetValue
             )
             true

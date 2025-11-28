@@ -1,15 +1,21 @@
 package com.example.voiceapp3.handlers
 
-import android.car.VehiclePropertyIds
 import android.util.Log
 import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
+import com.example.voiceapp3.tools.CarPropertyRegistry
 
-class AcControlHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
-    private val TAG: String? = "AcControlHandler"
+class AcControlHandler(private val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
+    private val TAG = "AcControlHandler"
 
-    override fun canHandle(intent: String): Boolean = intent in "ac_control"
+    private val acOnConfig = CarPropertyRegistry.Hvac.AC_ON
+    private val acAutoConfig = CarPropertyRegistry.Hvac.AC_AUTO
+    private val acPowerConfig = CarPropertyRegistry.Hvac.AC_POWER
+    private val fanDirectionConfig = CarPropertyRegistry.Hvac.FAN_DIRECTION
+    private val windowDefrosterConfig = CarPropertyRegistry.Hvac.WINDOW_DEFROSTER
+
+    override fun canHandle(intent: String): Boolean = intent == "ac_control"
 
     override fun handle(prediction: PredictionResult): Boolean {
         val params = extractCommonEntities(prediction)
@@ -24,60 +30,62 @@ class AcControlHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : Inten
     fun turnOnAc(setAuto: Boolean = true): Boolean {
         Log.d(TAG, "Turning AC ON")
         val acOn = vehiclePropertyHelper.setBoolProperty(
-            VehiclePropertyIds.HVAC_AC_ON,
-            117,
+            acOnConfig.getPropertyId(),
+            acOnConfig.getAreaId(),
             true
         )
 
         val acAutoOn = if (setAuto) {
             vehiclePropertyHelper.setBoolProperty(
-                VehiclePropertyIds.HVAC_AUTO_ON,
-                1,
+                acAutoConfig.getPropertyId(),
+                acAutoConfig.getAreaId(),
                 true
             )
         } else {
             true
         }
+
         val acPowerOn = vehiclePropertyHelper.setBoolProperty(
-            VehiclePropertyIds.HVAC_POWER_ON,
-            5,
+            acPowerConfig.getPropertyId(),
+            acPowerConfig.getAreaId(),
             true
         )
-        return acOn && acAutoOn and acPowerOn
+
+        return acOn && acAutoOn && acPowerOn
     }
 
     fun turnOffAc(): Boolean {
         Log.d(TAG, "Turning AC OFF")
         val acOn = vehiclePropertyHelper.setBoolProperty(
-            VehiclePropertyIds.HVAC_AC_ON,
-            117,
+            acOnConfig.getPropertyId(),
+            acOnConfig.getAreaId(),
             false
         )
         val acAutoOn = vehiclePropertyHelper.setBoolProperty(
-            VehiclePropertyIds.HVAC_AUTO_ON,
-            1,
+            acAutoConfig.getPropertyId(),
+            acAutoConfig.getAreaId(),
             false
         )
         val acPowerOn = vehiclePropertyHelper.setBoolProperty(
-            VehiclePropertyIds.HVAC_POWER_ON,
-            5,
+            acPowerConfig.getPropertyId(),
+            acPowerConfig.getAreaId(),
             false
         )
-        return acOn && acAutoOn and acPowerOn
+        return acOn && acAutoOn && acPowerOn
     }
 
     fun setAcDirection(direction: Int): Boolean {
         return vehiclePropertyHelper.setIntProperty(
-            VehiclePropertyIds.HVAC_FAN_DIRECTION,
-            1,
+            fanDirectionConfig.getPropertyId(),
+            fanDirectionConfig.getAreaId(),
             direction
         )
     }
 
     fun setWindowHeat(on: Boolean): Boolean {
         return vehiclePropertyHelper.setBoolProperty(
-            354419988,
-            2,
+            windowDefrosterConfig.getPropertyId(),
+            windowDefrosterConfig.getAreaId(),
             on
         )
     }

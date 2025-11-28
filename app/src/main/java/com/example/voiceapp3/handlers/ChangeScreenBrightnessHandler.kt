@@ -5,31 +5,23 @@ import com.example.voiceapp3.CommandParams
 import com.example.voiceapp3.IntentHandler
 import com.example.voiceapp3.PredictionResult
 import com.example.voiceapp3.car.VehiclePropertyHelper
-import com.example.voiceapp3.tools.CarModel
-import com.example.voiceapp3.tools.ModelEnum
+import com.example.voiceapp3.tools.CarPropertyRegistry
 
 
-class ChangeScreenBrightnessHandler(val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
-    private val TAG: String? = "ChangeScreenBrightnessHandler"
+class ChangeScreenBrightnessHandler(private val vehiclePropertyHelper: VehiclePropertyHelper) : IntentHandler {
+    private val TAG = "ChangeScreenBrightnessHandler"
 
-    private var BRIGHTNESS_PROPERTY_ID = 624981307
-    private var BRIGHTNESS_AREA_ID = 2
+    private val brightnessConfig = CarPropertyRegistry.Screen.BRIGHTNESS
+    private val autoBrightnessConfig = CarPropertyRegistry.Screen.AUTO_BRIGHTNESS
 
-    private var AUTO_BRIGHTNESS_PROPERTY_ID = 555775150
-    private var AUTO_BRIGHTNESS_AREA_ID = 0
-
-    private var minBrightness: Int = 0
-    private var maxBrightness: Int = 150
-    private val defaultBrightnessChange: Int = 20
+    private val minBrightness = CarPropertyRegistry.Screen.MIN_BRIGHTNESS
+    private val maxBrightness = CarPropertyRegistry.Screen.MAX_BRIGHTNESS
+    private val defaultBrightnessChange = 20
 
     override fun canHandle(intent: String): Boolean = intent == "screen_brightness"
 
     override fun handle(prediction: PredictionResult): Boolean {
         val params = extractCommonEntities(prediction)
-
-        if (CarModel.isCoolray) {
-            BRIGHTNESS_PROPERTY_ID = 687997952
-        }
 
         if (prediction.normalizedText.contains("авто")) {
             return setAutoBrightness()
@@ -45,11 +37,10 @@ class ChangeScreenBrightnessHandler(val vehiclePropertyHelper: VehiclePropertyHe
     }
 
     private fun handleSetBrightness(params: CommandParams): Boolean {
-        return when {
-            params.value != null -> {
-                setBrightness(percentToBrightness(params.value))
-            }
-            else -> false
+        return if (params.value != null) {
+            setBrightness(percentToBrightness(params.value))
+        } else {
+            false
         }
     }
 
@@ -59,8 +50,8 @@ class ChangeScreenBrightnessHandler(val vehiclePropertyHelper: VehiclePropertyHe
 
     private fun handleChangeBrightness(params: CommandParams): Boolean {
         val currentBrightness = vehiclePropertyHelper.getIntProperty(
-            BRIGHTNESS_PROPERTY_ID,
-            BRIGHTNESS_AREA_ID
+            brightnessConfig.getPropertyId(),
+            brightnessConfig.getAreaId()
         )
 
         if (currentBrightness == -1) {
@@ -68,29 +59,19 @@ class ChangeScreenBrightnessHandler(val vehiclePropertyHelper: VehiclePropertyHe
             return false
         }
 
-        var newValue = params.value
-        if (params.value == 1) {
-            newValue = 100
-        }
-        val newBrightness = when {
-            // Increase cases
-            params.action == "increase" && newValue != null -> {
-                val brightnessChange = percentToBrightnessChange(newValue)
-                currentBrightness + brightnessChange
-            }
+        val newValue = if (params.value == 1) 100 else params.value
 
+        val newBrightness = when {
+            params.action == "increase" && newValue != null -> {
+                currentBrightness + percentToBrightnessChange(newValue)
+            }
             params.action == "increase" ->
                 currentBrightness + defaultBrightnessChange
-
-            // Decrease cases
-            params.action == "decrease" && newValue != null-> {
-                val brightnessChange = percentToBrightnessChange(newValue)
-                currentBrightness - brightnessChange
+            params.action == "decrease" && newValue != null -> {
+                currentBrightness - percentToBrightnessChange(newValue)
             }
-
             params.action == "decrease" ->
                 currentBrightness - defaultBrightnessChange
-
             else -> return false
         }
         return setBrightness(newBrightness)
@@ -99,20 +80,18 @@ class ChangeScreenBrightnessHandler(val vehiclePropertyHelper: VehiclePropertyHe
     private fun setAutoBrightness(): Boolean {
         Log.d(TAG, "Setting auto brightness")
         return vehiclePropertyHelper.setBoolProperty(
-            AUTO_BRIGHTNESS_PROPERTY_ID,
-            AUTO_BRIGHTNESS_AREA_ID,
+            autoBrightnessConfig.getPropertyId(),
+            autoBrightnessConfig.getAreaId(),
             true
         )
     }
 
     private fun percentToBrightness(percent: Int): Int {
-        val brightness = (percent * maxBrightness) / 100
-        return brightness.coerceIn(minBrightness, maxBrightness)
+        return ((percent * maxBrightness) / 100).coerceIn(minBrightness, maxBrightness)
     }
 
     private fun percentToBrightnessChange(percent: Int): Int {
-        val change = (percent * maxBrightness) / 100
-        return change.coerceAtLeast(1) // Ensure at least 1 unit change
+        return ((percent * maxBrightness) / 100).coerceAtLeast(1)
     }
 
     fun setBrightness(brightness: Int): Boolean {
@@ -120,8 +99,8 @@ class ChangeScreenBrightnessHandler(val vehiclePropertyHelper: VehiclePropertyHe
 
         Log.i(TAG, "Changing brightness to $clampedBrightness")
         return vehiclePropertyHelper.setIntProperty(
-            BRIGHTNESS_PROPERTY_ID,
-            BRIGHTNESS_AREA_ID,
+            brightnessConfig.getPropertyId(),
+            brightnessConfig.getAreaId(),
             clampedBrightness
         )
     }

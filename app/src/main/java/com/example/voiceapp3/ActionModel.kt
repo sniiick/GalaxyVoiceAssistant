@@ -130,6 +130,7 @@ class ActionModel(context: Context, modelPath: String) {
             Regex("свет").containsMatchIn(text) -> "light_control"
             Regex("режим|режим вождения|вождения|гибрид|электр|спорт").containsMatchIn(text) -> "drive_mode"
             Regex("кошка|нахуй").containsMatchIn(text) -> "play_sound"
+            Regex("пауза|воспроизв|играй|следующ|предыдущ|громче|тише|громкость").containsMatchIn(text) -> "media_control"
             else -> null
         }
     }
